@@ -12,14 +12,14 @@ require 'vendor/autoload.php';
 
 use Smalot\PdfParser\Parser;
 
-$secretKey = '6Lfj2IcrAAAAAIBc_NX6O0jfRMKq54PIY4MWCdwn';
-$apiKeyOpenAI = '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';
-
+$secretKey = '
+$apiKeyOpenAI = '
+    
 // Lista de IPs permitidos
 $ips_permitidos = [
-    '200.100.50.25',   // Exemplo: IP fixo da empresa
-    '127.0.0.1',       // Localhost para testes
-    '179.102.28.223',  // IP do usuário
+    '',   // Exemplo: IP fixo da empresa
+    '',       // Localhost para testes
+    '',  // IP do usuário
     // Adicione outros IPs conforme necessário
 ];
 
