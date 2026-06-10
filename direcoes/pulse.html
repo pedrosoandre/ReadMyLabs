@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ReadMyLabs — Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#f6f1e9;
+  --bg-soft:#efe7da;
+  --card:#fffdf9;
+  --ink:#1a2235;
+  --navy:#16203a;
+  --navy-2:#22304f;
+  --muted:#5b647a;
+  --faint:#9aa0ad;
+  --line:#e6ddcf;
+  --line-2:#dccfba;
+  --coral:#f2603f;
+  --coral-d:#dc4f30;
+  --amber:#f0a92e;
+  --good:#2f9e6b;
+  --warn:#e08a1e;
+  --high:#e0503f;
+  --r:22px;
+  --maxw:1240px;
+  --ease:cubic-bezier(.2,.7,.2,1);
+  --shadow:0 32px 64px -38px rgba(22,32,58,.4);
+  --shadow-sm:0 16px 32px -22px rgba(22,32,58,.32);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:"Figtree",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.deco-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.deco-bg::before{content:"";position:absolute;width:680px;height:680px;right:-200px;top:-220px;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgba(242,96,63,.16),transparent 62%);filter:blur(20px)}
+.deco-bg::after{content:"";position:absolute;width:600px;height:600px;left:-200px;top:480px;border-radius:50%;background:radial-gradient(circle,rgba(240,169,46,.16),transparent 62%);filter:blur(20px)}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px;position:relative;z-index:2}
+
+nav{position:sticky;top:0;z-index:60;backdrop-filter:blur(14px);background:rgba(246,241,233,.82);border-bottom:1px solid var(--line)}
+.nav-in{max-width:var(--maxw);margin:0 auto;padding:16px 32px;display:flex;align-items:center;gap:34px}
+.logo{display:flex;align-items:center;gap:11px;font-family:"Bricolage Grotesque";font-weight:700;font-size:20px;letter-spacing:-.02em;color:var(--navy);text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:50%;background:var(--coral);display:grid;place-items:center;box-shadow:0 8px 20px rgba(242,96,63,.4)}
+.logo-mark svg{width:19px;height:19px}
+.nav-links{display:flex;gap:30px;margin-left:14px}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:15px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--navy)}
+.nav-cta{margin-left:auto;display:flex;align-items:center;gap:14px}
+.btn{font-family:inherit;font-weight:600;font-size:15px;border:none;cursor:pointer;border-radius:14px;padding:12px 22px;transition:transform .18s var(--ease),box-shadow .25s,background .2s;text-decoration:none;display:inline-flex;align-items:center;gap:9px}
+.btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--line-2)}
+.btn-ghost:hover{border-color:var(--navy);background:var(--card)}
+.btn-primary{background:var(--coral);color:#fff;box-shadow:0 12px 24px -8px rgba(242,96,63,.55)}
+.btn-primary:hover{transform:translateY(-2px);background:var(--coral-d);box-shadow:0 18px 32px -10px rgba(242,96,63,.6)}
+.btn-dark{background:var(--navy);color:#fff}
+.btn-dark:hover{transform:translateY(-2px);background:var(--navy-2)}
+.btn-lg{padding:16px 28px;font-size:16px}
+
+header{position:relative;padding:78px 0 48px}
+.badge{display:inline-flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:var(--coral-d);background:var(--card);border:1px solid var(--line-2);padding:8px 15px;border-radius:999px;margin-bottom:28px}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--coral)}
+.hero-grid{display:grid;grid-template-columns:1.06fr .94fr;gap:54px;align-items:center}
+h1{font-family:"Bricolage Grotesque";font-weight:700;font-size:clamp(42px,5.6vw,72px);line-height:.99;letter-spacing:-.03em;color:var(--navy)}
+h1 em{font-style:normal;color:var(--coral)}
+.hero-sub{margin-top:24px;font-size:19px;color:var(--muted);max-width:510px}
+.hero-actions{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}
+.hero-stats{margin-top:46px;display:flex;gap:38px}
+.hero-stats .num{font-family:"Bricolage Grotesque";font-size:32px;font-weight:700;letter-spacing:-.02em;color:var(--navy)}
+.hero-stats .lbl{font-size:13.5px;color:var(--faint);margin-top:2px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.upload-card{padding:28px;position:relative;box-shadow:var(--shadow)}
+.upload-card::before{content:"";position:absolute;left:24px;right:24px;top:-9px;height:9px;border-radius:9px 9px 0 0;background:var(--coral);opacity:.9}
+.uc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.uc-head .t{font-family:"Bricolage Grotesque";font-weight:600;font-size:16px;color:var(--navy)}
+.uc-head .tag{font-size:12px;color:var(--coral-d);background:rgba(242,96,63,.1);padding:4px 11px;border-radius:999px;font-weight:600}
+.dropzone{border:1.5px dashed var(--line-2);border-radius:16px;padding:34px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--bg-soft)}
+.dropzone:hover,.dropzone.drag{border-color:var(--coral);background:rgba(242,96,63,.05)}
+.dz-icon{width:54px;height:54px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;background:rgba(242,96,63,.12)}
+.dz-icon svg{width:25px;height:25px;stroke:var(--coral-d)}
+.dz-t{font-weight:600;font-size:15.5px;color:var(--ink)}
+.dz-s{font-size:13px;color:var(--faint);margin-top:5px}
+.dz-file{display:none;margin-top:14px;align-items:center;gap:11px;justify-content:center;font-size:14px;color:var(--ink)}
+.dz-file.show{display:flex}
+.dz-file .fi{width:34px;height:34px;border-radius:50%;background:rgba(47,158,107,.14);display:grid;place-items:center}
+.dz-file .fi svg{width:17px;height:17px;stroke:var(--good)}
+.uc-foot{margin-top:18px;display:flex;align-items:center;gap:14px}
+.uc-foot .btn{flex:1;justify-content:center}
+.uc-trust{margin-top:16px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--faint)}
+.uc-trust svg{width:14px;height:14px;stroke:var(--good)}
+
+.result{margin-top:22px;display:none}
+.result.show{display:block;animation:rise .6s var(--ease)}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.res-summary{padding:22px;border-radius:16px;background:var(--navy);color:#fff}
+.res-summary .rs-top{display:flex;align-items:center;gap:12px}
+.res-ring{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--good) 0 76%,rgba(255,255,255,.16) 76%);position:relative}
+.res-ring span{position:absolute;inset:5px;border-radius:50%;background:var(--navy);display:grid;place-items:center;font-family:"Bricolage Grotesque";font-weight:700;font-size:13px;color:#fff}
+.res-summary h4{font-family:"Bricolage Grotesque";font-size:17px;font-weight:600}
+.res-summary p{font-size:14px;color:rgba(255,255,255,.7);margin-top:2px}
+.markers{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.marker{display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:13px;background:var(--card);border:1px solid var(--line);opacity:0;transform:translateY(8px);animation:rise .5s var(--ease) forwards;box-shadow:var(--shadow-sm)}
+.marker .mk-name{font-weight:600;font-size:14.5px;flex:1;color:var(--ink)}
+.marker .mk-name small{display:block;font-weight:400;font-size:12px;color:var(--faint);margin-top:1px}
+.marker .mk-val{font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.mk-badge{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:999px;white-space:nowrap}
+.mk-good{color:var(--good);background:rgba(47,158,107,.13)}
+.mk-warn{color:var(--warn);background:rgba(224,138,30,.14)}
+.mk-high{color:var(--high);background:rgba(224,80,63,.13)}
+.res-note{margin-top:14px;font-size:12.5px;color:var(--faint);display:flex;gap:9px;align-items:flex-start;line-height:1.5}
+.res-note svg{width:15px;height:15px;flex-shrink:0;margin-top:2px;stroke:var(--faint)}
+
+section{position:relative;padding:96px 0}
+.eyebrow{font-size:13px;letter-spacing:.08em;color:var(--coral-d);text-transform:uppercase;margin-bottom:16px;font-weight:700}
+h2{font-family:"Bricolage Grotesque";font-weight:700;font-size:clamp(32px,3.8vw,48px);line-height:1.05;letter-spacing:-.025em;color:var(--navy)}
+.sec-head{max-width:660px;margin-bottom:54px}
+.sec-head p{margin-top:18px;font-size:18px;color:var(--muted)}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+.step{padding:30px 26px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);transition:transform .3s var(--ease),box-shadow .3s;box-shadow:var(--shadow-sm)}
+.step:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+.step .n{font-family:"Bricolage Grotesque";font-size:38px;font-weight:800;color:var(--bg-soft);line-height:1;-webkit-text-stroke:1.5px var(--line-2)}
+.step .si{width:50px;height:50px;border-radius:14px;margin:8px 0 18px;display:grid;place-items:center;background:rgba(242,96,63,.1)}
+.step .si svg{width:24px;height:24px;stroke:var(--coral-d)}
+.step h3{font-family:"Bricolage Grotesque";font-size:21px;font-weight:600;margin-bottom:8px;color:var(--navy)}
+.step p{font-size:15px;color:var(--muted)}
+
+.exam-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.exam{padding:24px 22px;border-radius:18px;background:var(--card);border:1px solid var(--line);transition:transform .3s var(--ease),box-shadow .3s;box-shadow:var(--shadow-sm)}
+.exam:hover{transform:translateY(-5px);box-shadow:var(--shadow)}
+.exam .ei{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:16px;background:var(--bg-soft)}
+.exam .ei svg{width:22px;height:22px;stroke:var(--navy)}
+.exam h4{font-family:"Bricolage Grotesque";font-size:16.5px;font-weight:600;margin-bottom:6px;color:var(--navy)}
+.exam p{font-size:13.5px;color:var(--faint)}
+
+.sym-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.sym-form{padding:30px;box-shadow:var(--shadow-sm)}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:9px;color:var(--ink)}
+.field textarea,.field select{width:100%;font-family:inherit;font-size:15px;color:var(--ink);background:var(--bg-soft);border:1px solid var(--line-2);border-radius:13px;padding:14px 15px;transition:border-color .2s,background .2s}
+.field textarea{min-height:110px;resize:vertical}
+.field textarea:focus,.field select:focus{outline:none;border-color:var(--coral);background:var(--card)}
+.field textarea::placeholder{color:var(--faint)}
+.field select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%235b647a' stroke-width='2'%3E%3Cpath d='M3 5l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sym-result{padding:28px;display:none;box-shadow:var(--shadow-sm)}
+.sym-result.show{display:block;animation:rise .5s var(--ease)}
+.tri{display:flex;align-items:center;gap:12px;padding:16px;border-radius:14px;margin-bottom:14px;background:rgba(224,138,30,.1);border:1px solid rgba(224,138,30,.25)}
+.tri .ti{width:42px;height:42px;border-radius:50%;background:rgba(224,138,30,.18);display:grid;place-items:center}
+.tri .ti svg{width:20px;height:20px;stroke:var(--warn)}
+.tri h4{font-family:"Bricolage Grotesque";font-size:16px;color:var(--ink)}
+.tri p{font-size:13px;color:var(--muted)}
+.sym-list{list-style:none;display:flex;flex-direction:column;gap:11px}
+.sym-list li{display:flex;gap:11px;font-size:14.5px;color:var(--muted);align-items:flex-start}
+.sym-list li svg{width:18px;height:18px;stroke:var(--coral-d);flex-shrink:0;margin-top:2px}
+.sym-placeholder{display:grid;place-items:center;height:100%;min-height:280px;text-align:center;color:var(--faint);padding:30px;box-shadow:var(--shadow-sm)}
+.sym-placeholder .pi{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:var(--bg-soft)}
+.sym-placeholder .pi svg{width:28px;height:28px;stroke:var(--faint)}
+
+.b2b{padding:0}
+.b2b-card{padding:56px;border-radius:30px;background:var(--navy);position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.b2b-card::after{content:"";position:absolute;right:-60px;bottom:-90px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(242,96,63,.45),transparent 64%)}
+.b2b-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:50px;align-items:center;position:relative;z-index:2}
+.b2b-grid .eyebrow{color:var(--amber)}
+.b2b-grid h2{font-size:38px;color:#fff}
+.b2b-grid p{margin-top:16px;font-size:17px;color:rgba(255,255,255,.78)}
+.b2b-feats{margin-top:26px;display:flex;flex-direction:column;gap:14px}
+.b2b-feats div{display:flex;gap:12px;align-items:center;font-size:15.5px;color:#fff}
+.b2b-feats svg{width:20px;height:20px;stroke:var(--coral);flex-shrink:0}
+.partner-logos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.plogo{height:90px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);display:grid;place-items:center;font-family:"Bricolage Grotesque";font-weight:600;color:rgba(255,255,255,.65);font-size:14px;letter-spacing:.04em}
+
+.faq{max-width:820px;margin:0 auto}
+.q{border-bottom:1px solid var(--line-2);padding:24px 4px;cursor:pointer}
+.q-head{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.q-head h4{font-family:"Bricolage Grotesque";font-size:19px;font-weight:600;color:var(--navy)}
+.q-head .qi{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;flex-shrink:0;transition:transform .3s,background .2s;background:var(--card)}
+.q.open .qi{transform:rotate(45deg);background:var(--coral);border-color:var(--coral)}
+.q.open .qi svg{stroke:#fff}
+.q-head .qi svg{width:14px;height:14px;stroke:var(--navy)}
+.q-body{max-height:0;overflow:hidden;transition:max-height .35s var(--ease),margin .35s}
+.q-body p{font-size:15.5px;color:var(--muted)}
+.q.open .q-body{max-height:200px;margin-top:14px}
+
+.final{text-align:center;padding:110px 0}
+.final h2{font-size:clamp(36px,5vw,62px);max-width:860px;margin:0 auto}
+.final h2 em{font-style:normal;color:var(--coral)}
+.final p{margin:22px auto 0;font-size:19px;color:var(--muted);max-width:540px}
+.final .hero-actions{justify-content:center}
+
+footer{border-top:1px solid var(--line);padding:60px 0 40px;position:relative;z-index:2}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;margin-bottom:46px}
+.foot-grid p{font-size:14px;color:var(--faint);margin-top:16px;max-width:280px}
+.foot-col h5{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin-bottom:16px;font-weight:700}
+.foot-col a{display:block;color:var(--muted);text-decoration:none;font-size:14.5px;margin-bottom:11px;transition:color .2s}
+.foot-col a:hover{color:var(--coral-d)}
+.foot-bot{display:flex;justify-content:space-between;align-items:center;padding-top:26px;border-top:1px solid var(--line);font-size:13.5px;color:var(--faint);flex-wrap:wrap;gap:14px}
+
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+
+@media(max-width:980px){
+  .hero-grid,.sym-grid,.b2b-grid{grid-template-columns:1fr;gap:36px}
+  .steps,.exam-grid{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+}
+@media(max-width:620px){
+  .wrap,.nav-in{padding-left:20px;padding-right:20px}
+  .steps,.exam-grid,.two-col{grid-template-columns:1fr}
+  .hero-stats{gap:24px}
+  .b2b-card,.sym-form,.upload-card{padding:24px}
+}
+</style>
+</head>
+<body>
+<div class="deco-bg"></div>
+
+<nav>
+  <div class="nav-in">
+    <a href="#top" class="logo">
+      <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h13" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="18.5" cy="13.5" r="3.2" stroke="#fff" stroke-width="2"/></svg></span>
+      ReadMyLabs
+    </a>
+    <div class="nav-links">
+      <a href="#como">Como funciona</a>
+      <a href="#exames">Exames</a>
+      <a href="#sintomas">Sintomas</a>
+      <a href="#parcerias">Parcerias</a>
+    </div>
+    <div class="nav-cta">
+      <a href="#top" class="btn btn-ghost">Entrar</a>
+      <a href="#analisar" class="btn btn-primary">Analisar exame</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="badge"><span class="dot"></span> Inteligência artificial que cuida de você</div>
+        <h1>Resultado de exame não precisa ser um <em>mistério</em>.</h1>
+        <p class="hero-sub">Envie o PDF ou a foto do seu exame e receba uma explicação humana, acolhedora e direta de cada número — do jeito que um amigo médico explicaria.</p>
+        <div class="hero-actions">
+          <a href="#analisar" class="btn btn-primary btn-lg">Analisar meu exame</a>
+          <a href="#como" class="btn btn-ghost btn-lg">Ver como funciona</a>
+        </div>
+        <div class="hero-stats">
+          <div><div class="num">+120</div><div class="lbl">tipos de exame lidos</div></div>
+          <div><div class="num">~15s</div><div class="lbl">para a análise</div></div>
+          <div><div class="num">100%</div><div class="lbl">privado e seguro</div></div>
+        </div>
+      </div>
+      <div id="analisar">
+        <div class="panel upload-card">
+          <div class="uc-head">
+            <span class="t">Analisar documento</span>
+            <span class="tag">PDF · JPG · PNG</span>
+          </div>
+          <div class="dropzone" id="dz">
+            <div class="dz-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
+            <div class="dz-t">Arraste seu exame aqui</div>
+            <div class="dz-s">ou clique para selecionar — PDF ou imagem</div>
+            <div class="dz-file" id="dzFile"><span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span id="dzName">exame.pdf</span></div>
+          </div>
+          <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" hidden />
+          <div class="uc-foot">
+            <button class="btn btn-primary" id="analyzeBtn">Analisar exame</button>
+          </div>
+          <div class="uc-trust"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Seus dados não são compartilhados. Análise informativa, não substitui consulta médica.</div>
+
+          <div class="result" id="result">
+            <div class="res-summary">
+              <div class="rs-top">
+                <div class="res-ring"><span>76</span></div>
+                <div>
+                  <h4>4 de 6 marcadores dentro do esperado</h4>
+                  <p>Dois pontos merecem acompanhamento. Veja abaixo.</p>
+                </div>
+              </div>
+            </div>
+            <div class="markers" id="markers"></div>
+            <div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> Esta é uma interpretação informativa gerada por IA a partir de um exemplo. Sempre leve seus exames a um profissional de saúde.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="como">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Como funciona</div>
+      <h2>Três passos entre a dúvida e o entendimento.</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="n">01</div>
+        <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></div>
+        <h3>Envie o exame</h3>
+        <p>Suba o PDF do laboratório ou tire uma foto. A IA reconhece os valores automaticamente.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">02</div>
+        <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2a7.5 7.5 0 015.4 12.7l4.4 4.4-1.6 1.6-4.4-4.4A7.5 7.5 0 119.5 2z"/></svg></div>
+        <h3>A IA interpreta</h3>
+        <p>Cada marcador é comparado às faixas de referência e traduzido para uma linguagem simples.</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">03</div>
+        <div class="si"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+        <h3>Você entende</h3>
+        <p>Veja o que está bem, o que precisa de atenção e perguntas para levar ao seu médico.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="exames">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Exames suportados</div>
+      <h2>Da rotina ao detalhe, a IA lê o que importa.</h2>
+      <p>Mais de 120 marcadores reconhecidos — dos exames de sangue básicos a painéis hormonais e metabólicos.</p>
+    </div>
+    <div class="exam-grid">
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 7 6 10 6 14a6 6 0 0012 0c0-4-2-7-6-12z"/></svg></div><h4>Hemograma</h4><p>Hemácias, leucócitos, plaquetas e índices.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-12 2 6h6"/></svg></div><h4>Glicemia</h4><p>Glicose, HbA1c e perfil metabólico.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.5-7 10-7 10z"/></svg></div><h4>Perfil lipídico</h4><p>Colesterol total, LDL, HDL e triglicerídeos.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h4>Tireoide</h4><p>TSH, T3, T4 livre e anticorpos.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 8l7-5 7 5"/></svg></div><h4>Vitaminas</h4><p>Vitamina D, B12, ferro e ferritina.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a6 6 0 0012 0V3"/><path d="M6 21v-4a6 6 0 0112 0v4"/></svg></div><h4>Função renal</h4><p>Ureia, creatinina e clearance.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6a8 8 0 01-16 0V4z"/><path d="M9 20h6"/></svg></div><h4>Função hepática</h4><p>TGO, TGP, gama-GT e bilirrubinas.</p></div>
+      <div class="exam reveal"><div class="ei"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></svg></div><h4>Hormônios</h4><p>Cortisol, testosterona, estrogênio e mais.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="sintomas">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Análise de sintomas</div>
+      <h2>Sentindo algo? Descreva e receba orientação.</h2>
+      <p>Conte o que está sentindo e a IA sugere possíveis causas e o nível de cuidado recomendado — sempre como apoio, nunca como diagnóstico.</p>
+    </div>
+    <div class="sym-grid">
+      <div class="panel sym-form reveal">
+        <div class="field">
+          <label for="symText">Descreva seus sintomas</label>
+          <textarea id="symText" placeholder="Ex.: estou com dor no peito, febre e calafrios há dois dias..."></textarea>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label for="symDur">Duração</label>
+            <select id="symDur"><option>Menos de 1 dia</option><option selected>1 a 3 dias</option><option>4 a 7 dias</option><option>Mais de 1 semana</option></select>
+          </div>
+          <div class="field">
+            <label for="symInt">Intensidade</label>
+            <select id="symInt"><option>Leve</option><option selected>Moderada</option><option>Forte</option><option>Insuportável</option></select>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="symBtn" style="width:100%;justify-content:center">Analisar sintomas</button>
+      </div>
+      <div class="panel sym-result" id="symResult">
+        <div class="tri" id="triBox">
+          <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+          <div><h4>Atenção recomendada</h4><p>Seus sintomas sugerem procurar avaliação médica em breve.</p></div>
+        </div>
+        <ul class="sym-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg> Possíveis causas incluem quadros infecciosos ou inflamatórios — febre e calafrios costumam indicar resposta do organismo.</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg> Monitore a temperatura e a hidratação. Dor no peito persistente exige avaliação imediata.</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Leve esta análise e seus exames recentes ao atendimento para agilizar o diagnóstico.</li>
+        </ul>
+      </div>
+      <div class="panel sym-placeholder" id="symPlaceholder">
+        <div>
+          <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2a7.5 7.5 0 015.4 12.7l4.4 4.4-1.6 1.6-4.4-4.4A7.5 7.5 0 119.5 2z"/></svg></div>
+          Preencha ao lado e a orientação aparece aqui.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="parcerias" class="b2b">
+  <div class="wrap">
+    <div class="b2b-card reveal">
+      <div class="b2b-grid">
+        <div>
+          <div class="eyebrow">Parcerias · Laboratórios e Hospitais</div>
+          <h2>Leve a leitura inteligente para seus pacientes.</h2>
+          <p>Integre o ReadMyLabs ao seu laboratório ou hospital e entregue laudos que o paciente realmente entende — reduzindo dúvidas e retornos desnecessários.</p>
+          <div class="b2b-feats">
+            <div><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> API de integração com seu sistema de laudos</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Marca branca com a identidade da sua instituição</div>
+            <div><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Conformidade com LGPD e dados criptografados</div>
+          </div>
+          <div class="hero-actions"><a href="#" class="btn btn-primary btn-lg">Falar com o time</a></div>
+        </div>
+        <div class="partner-logos">
+          <div class="plogo">LABORATÓRIO</div>
+          <div class="plogo">HOSPITAL</div>
+          <div class="plogo">CLÍNICA</div>
+          <div class="plogo">CONVÊNIO</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Perguntas frequentes</div>
+      <h2>Tudo que você quer saber.</h2>
+    </div>
+    <div class="faq">
+      <div class="q open"><div class="q-head" onclick="this.parentElement.classList.toggle('open')"><h4>O ReadMyLabs substitui o médico?</h4><span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div><div class="q-body"><p>Não. A análise é informativa e educativa, feita para você entender melhor seus resultados. O diagnóstico e o tratamento são sempre responsabilidade de um profissional de saúde.</p></div></div>
+      <div class="q"><div class="q-head" onclick="this.parentElement.classList.toggle('open')"><h4>Meus dados ficam seguros?</h4><span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div><div class="q-body"><p>Sim. Tudo é criptografado e nunca compartilhado. Você controla seus documentos e pode apagá-los quando quiser, em conformidade com a LGPD.</p></div></div>
+      <div class="q"><div class="q-head" onclick="this.parentElement.classList.toggle('open')"><h4>Quais formatos posso enviar?</h4><span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div><div class="q-body"><p>PDF do laboratório ou foto/imagem (JPG, PNG). A IA reconhece os valores mesmo em fotos tiradas pelo celular.</p></div></div>
+      <div class="q"><div class="q-head" onclick="this.parentElement.classList.toggle('open')"><h4>Preciso pagar para usar?</h4><span class="qi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span></div><div class="q-body"><p>A análise básica de exames é gratuita. Recursos avançados, histórico e acompanhamento contínuo fazem parte dos planos premium.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap reveal">
+    <h2>Cuide da sua saúde começando por <em>entendê-la</em>.</h2>
+    <p>Leva menos de um minuto. Sem cadastro complicado, sem termos médicos impossíveis.</p>
+    <div class="hero-actions"><a href="#analisar" class="btn btn-primary btn-lg">Analisar meu exame</a></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a href="#top" class="logo"><span class="logo-mark"><svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h13" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="18.5" cy="13.5" r="3.2" stroke="#fff" stroke-width="2"/></svg></span>ReadMyLabs</a>
+        <p>Inteligência artificial que traduz seus exames em algo que você entende. Cuidar da saúde começa por compreendê-la.</p>
+      </div>
+      <div class="foot-col"><h5>Produto</h5><a href="#como">Como funciona</a><a href="#exames">Exames</a><a href="#sintomas">Sintomas</a><a href="#analisar">Analisar exame</a></div>
+      <div class="foot-col"><h5>Empresa</h5><a href="#parcerias">Parcerias</a><a href="#parcerias">Laboratórios</a><a href="#">Sobre</a><a href="#">Contato</a></div>
+      <div class="foot-col"><h5>Legal</h5><a href="#">Termos de uso</a><a href="#">Privacidade</a><a href="#">LGPD</a></div>
+    </div>
+    <div class="foot-bot">
+      <div>© 2026 ReadMyLabs. Todos os direitos reservados.</div>
+      <div>contato@readmylabs.com.br</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const markerData=[
+  {name:"Hemoglobina",sub:"Transporte de oxigênio",val:"13.8 g/dL",cls:"mk-good",txt:"Normal"},
+  {name:"Leucócitos",sub:"Defesa do organismo",val:"11.200 /mm³",cls:"mk-warn",txt:"Levemente alto"},
+  {name:"Glicose",sub:"Açúcar no sangue",val:"102 mg/dL",cls:"mk-warn",txt:"Limítrofe"},
+  {name:"Colesterol LDL",sub:"Colesterol \"ruim\"",val:"145 mg/dL",cls:"mk-high",txt:"Alto"},
+  {name:"Vitamina D",sub:"Imunidade e ossos",val:"22 ng/mL",cls:"mk-warn",txt:"Baixo"},
+  {name:"TSH",sub:"Função da tireoide",val:"2.1 µUI/mL",cls:"mk-good",txt:"Normal"}
+];
+const fileInput=document.getElementById('fileInput');
+const dz=document.getElementById('dz');
+const dzFile=document.getElementById('dzFile');
+const dzName=document.getElementById('dzName');
+dz.addEventListener('click',()=>fileInput.click());
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');if(e.dataTransfer.files[0]){showFile(e.dataTransfer.files[0].name)}});
+fileInput.addEventListener('change',()=>{if(fileInput.files[0])showFile(fileInput.files[0].name)});
+function showFile(n){dzName.textContent=n;dzFile.classList.add('show')}
+
+const analyzeBtn=document.getElementById('analyzeBtn');
+const result=document.getElementById('result');
+const markers=document.getElementById('markers');
+analyzeBtn.addEventListener('click',()=>{
+  if(!dzFile.classList.contains('show')){showFile('hemograma-exemplo.pdf')}
+  analyzeBtn.textContent='Analisando…';analyzeBtn.style.opacity='.7';analyzeBtn.disabled=true;
+  setTimeout(()=>{
+    markers.innerHTML='';
+    markerData.forEach((m,i)=>{
+      const el=document.createElement('div');
+      el.className='marker';el.style.animationDelay=(i*70)+'ms';
+      el.innerHTML=`<div class="mk-name">${m.name}<small>${m.sub}</small></div><div class="mk-val">${m.val}</div><span class="mk-badge ${m.cls}">${m.txt}</span>`;
+      markers.appendChild(el);
+    });
+    result.classList.add('show');
+    analyzeBtn.textContent='Analisar novamente';analyzeBtn.style.opacity='1';analyzeBtn.disabled=false;
+    result.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },1500);
+});
+
+const symBtn=document.getElementById('symBtn');
+const symResult=document.getElementById('symResult');
+const symPlaceholder=document.getElementById('symPlaceholder');
+symBtn.addEventListener('click',()=>{
+  symBtn.textContent='Analisando…';symBtn.style.opacity='.7';
+  setTimeout(()=>{
+    symPlaceholder.style.display='none';
+    symResult.classList.add('show');
+    symBtn.textContent='Analisar novamente';symBtn.style.opacity='1';
+  },1100);
+});
+
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.14});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
