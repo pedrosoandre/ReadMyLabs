@@ -1,0 +1,69 @@
+# -------------------------------------------------------
+# Security headers
+# -------------------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://pagead2.googlesyndication.com https://cdn.ampproject.org https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.anthropic.com; frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/;"
+</IfModule>
+
+# -------------------------------------------------------
+# Desabilitar listagem de diretórios
+# -------------------------------------------------------
+Options -Indexes
+
+# -------------------------------------------------------
+# Bloquear acesso a arquivos sensíveis
+# -------------------------------------------------------
+<FilesMatch "^(\.env|\.env\.example|composer\.(json|lock)|loads_env\.php)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear arquivos de teste e debug
+<FilesMatch "^(teste[-_]|debug-|limpar-limite|zerar-contagem)">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# -------------------------------------------------------
+# Bloquear acesso a diretórios sensíveis
+# -------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Bloquear acesso a /vendor/
+    RewriteRule ^vendor/ - [F,L]
+
+    # Bloquear acesso a /limite_ip/
+    RewriteRule ^limite_ip/ - [F,L]
+
+    # Bloquear acesso a arquivos ocultos (.git, etc.)
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+</IfModule>
+
+# -------------------------------------------------------
+# PHP — desabilitar exposição de erros em produção
+# -------------------------------------------------------
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value error_log /var/log/php_errors.log
+</IfModule>
+
+# -------------------------------------------------------
+# Upload — limitar tamanho máximo
+# -------------------------------------------------------
+<IfModule mod_php.c>
+    php_value upload_max_filesize 5M
+    php_value post_max_size 6M
+    php_value max_execution_time 90
+</IfModule>
+
+# -------------------------------------------------------
+# Charset padrão
+# -------------------------------------------------------
+AddDefaultCharset UTF-8

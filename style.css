@@ -1,0 +1,165 @@
+body, html {
+  font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+}
+.toolbar {
+  width: 100%;
+  background: #007bff;
+  padding: 0;
+  margin: 0;
+}
+.menu {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 32px;
+}
+.menu li a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.1em;
+  padding: 18px 24px;
+  display: block;
+  border-radius: 8px 8px 0 0;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.menu li a:hover {
+  background: #0056b3;
+  color: #e3f2fd;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+textarea {
+  width: 100%;
+  min-height: 120px;
+  max-width: 100%;
+  font-size: 1.08em;
+  padding: 18px 14px;
+  border-radius: 14px;
+  border: 1.8px solid #b3d1f7;
+  background: #f8fbff;
+  box-shadow: 0 2px 12px rgba(0,123,255,0.07);
+  margin-bottom: 18px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  color: #222;
+}
+textarea:focus {
+  border-color: #007bff;
+  box-shadow: 0 4px 18px rgba(0,123,255,0.13);
+  outline: none;
+  background: #fff;
+}
+input[type="file"] {
+  width: 100%;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1.5px solid #b3d1f7;
+  background: #f8fbff;
+  margin-bottom: 16px;
+  font-size: 1em;
+  color: #222;
+}
+form, .form-analise {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,123,255,0.09);
+  max-width: 98vw;
+  margin: 24px auto;
+  padding: 24px 12px 18px 12px;
+  text-align: left;
+  gap: 18px;
+}
+label {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #222;
+  display: block;
+}
+textarea, select, input[type="file"] {
+  width: 100%;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+button, #btnUpload {
+  width: 100%;
+  max-width: 340px;
+  margin: 18px auto 0 auto;
+  display: block;
+  font-size: 1.08em;
+  padding: 14px 0;
+  border-radius: 22px;
+  font-weight: 600;
+  background: #007bff;
+  color: #fff;
+  border: 2px solid #6ec1ff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  transition: box-shadow 0.2s, background 0.2s, transform 0.15s, border-color 0.2s;
+}
+button:hover, #btnUpload:hover {
+  background: #0056b3;
+  border-color: #2196f3;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.16), 0 1.5px 4px rgba(0,0,0,0.10);
+  transform: translateY(-2px) scale(1.04);
+}
+/* Força navbar horizontal em todas as telas */
+.menu, .navbar, .nav, .header-nav, .navigation, .top-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    gap: 1rem !important;
+}
+
+/* Para desktops - força layout horizontal */
+@media (min-width: 1025px) {
+    .menu, .navbar, .nav, .header-nav, .navigation, .top-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+    }
+}
+@media (max-width: 700px) {
+  form, .form-analise {
+    padding: 14px 2vw 12px 2vw;
+    max-width: 99vw;
+    gap: 14px;
+  }
+  label {
+    font-size: 1em;
+    margin-bottom: 4px;
+  }
+  textarea, select, input[type="file"] {
+    font-size: 1em;
+    padding: 10px 6px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  button, #btnUpload {
+    font-size: 1em;
+    padding: 13px 0;
+    border-radius: 18px;
+    max-width: 99vw;
+  }
+  .menu {
+    gap: 4px;
+  }
+  .menu li a {
+    font-size: 0.85em;
+    padding: 8px 3px;
+    border-radius: 5px 5px 0 0;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .toolbar {
+    padding: 0;
+  }
+}

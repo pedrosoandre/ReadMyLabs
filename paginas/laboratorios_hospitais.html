@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratórios e Hospitais</title>
+  <link rel="stylesheet" href="../style.css">
+  <style>
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 36px 6vw;
+      box-sizing: border-box;
+    }
+    h1 {
+      color: #0d2f66;
+      font-size: 2em;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    label {
+      font-weight: 600;
+      color: #007bff;
+      margin-top: 18px;
+      display: block;
+    }
+    select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1.5px solid #b3d1f7;
+      margin-bottom: 24px;
+      font-size: 1.08em;
+      background: #f8fbff;
+      box-sizing: border-box;
+    }
+    .popup {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.5);
+      align-items: center; justify-content: center;
+    }
+    .popup-content {
+      background: #fff;
+      padding: 24px 12px;
+      border-radius: 14px;
+      max-width: 95vw;
+      width: 98vw;
+      max-height: 80vh;
+      overflow: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      text-align: left;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .popup-content h2 { color: #007bff; margin-top: 0; font-size: 1.3em; }
+    .close-popup {
+      position: absolute;
+      top: 12px; right: 18px;
+      font-size: 1.7em;
+      color: #888;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    @media (max-width: 700px) {
+      .container {
+        padding: 18px 2vw;
+        max-width: 99vw;
+      }
+      h1 {
+        font-size: 1.25em;
+      }
+      .popup-content {
+        padding: 14px 4vw;
+        max-width: 99vw;
+        width: 99vw;
+        font-size: 1em;
+      }
+      select {
+        font-size: 1em;
+        padding: 10px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <ul class="menu">
+      <li><a href="labs.html">Labs</a></li>
+      <li><a href="exames.html">Exames</a></li>
+      <li><a href="parcerias.html">Parcerias</a></li>
+      <li><a href="laboratorios_hospitais.html">Laboratórios e Hospitais</a></li>
+    </ul>
+  </header>
+  <div class="container">
+    <h1>Laboratórios e Hospitais de Referência no Brasil</h1>
+    <label for="selectLab">Laboratórios:</label>
+    <select id="selectLab">
+      <option value="">Selecione um laboratório</option>
+      <option value="fleury">Fleury</option>
+      <option value="dasa">Dasa</option>
+      <option value="sabinvacinas">Sabin</option>
+      <option value="hermespardini">Hermes Pardini</option>
+      <option value="delboni">Delboni Auriemo</option>
+      <option value="albertosabino">Alberto Sabin</option>
+      <option value="weimann">Weinmann</option>
+      <option value="a+">a+</option>
+      <option value="diagnosticosdobrasil">Diagnósticos do Brasil</option>
+    </select>
+    <label for="selectHosp">Hospitais:</label>
+    <select id="selectHosp">
+      <option value="">Selecione um hospital</option>
+      <option value="albert_einstein">Hospital Israelita Albert Einstein</option>
+      <option value="sirio_libanes">Hospital Sírio-Libanês</option>
+      <option value="hcor">HCor</option>
+      <option value="beneficencia_portuguesa">Beneficência Portuguesa</option>
+      <option value="hospital_moinhos">Hospital Moinhos de Vento</option>
+      <option value="hospital_oswaldo_cruz">Hospital Alemão Oswaldo Cruz</option>
+      <option value="hospital_samaritano">Hospital Samaritano</option>
+      <option value="hospital_santa_casa">Santa Casa de Misericórdia</option>
+      <option value="hospital_bahia">Hospital da Bahia</option>
+      <!-- Hospitais de Porto Alegre -->
+      <option value="hcpa">Hospital de Clínicas de Porto Alegre</option>
+      <option value="sao_lucas_pucrs">Hospital São Lucas da PUCRS</option>
+      <option value="ernesto_dornelles">Hospital Ernesto Dornelles</option>
+      <option value="divina_providencia">Hospital Divina Providência</option>
+      <option value="santa_casa_poa">Santa Casa de Misericórdia de Porto Alegre</option>
+      <option value="mae_de_deus">Hospital Mãe de Deus</option>
+      <option value="conceicao">Hospital Conceição (Grupo Hospitalar Conceição)</option>
+    </select>
+    <label for="selectClinica">Clínicas de Porto Alegre:</label>
+    <select id="selectClinica">
+      <option value="">Selecione uma clínica</option>
+      <option value="radson">Clínica Radson</option>
+      <option value="imagem">Clínica Imagem</option>
+      <option value="gastros">Clínica Gastros</option>
+      <option value="oncoclinicas">Oncoclínicas RS</option>
+      <option value="saopietro">Clínica São Pietro</option>
+      <option value="viver">Clínica Viver</option>
+      <option value="oto">Clínica Oto</option>
+      <option value="ocular">Clínica Ocular</option>
+      <option value="cardio">Clínica Cardio</option>
+    </select>
+  </div>
+  <div class="popup" id="popup">
+    <div class="popup-content" id="popupContent">
+      <span class="close-popup" id="closePopup">&times;</span>
+      <div id="popupInfo"></div>
+    </div>
+  </div>
+  <script>
+    const labs = {
+      fleury: { nome: "Fleury", site: "https://www.fleury.com.br", info: "Um dos maiores grupos de medicina diagnóstica do Brasil, referência em exames laboratoriais e de imagem." },
+      dasa: { nome: "Dasa", site: "https://www.dasa.com.br", info: "Maior rede de saúde integrada do Brasil, com diversos laboratórios e hospitais." },
+      sabinvacinas: { nome: "Sabin", site: "https://www.sabin.com.br", info: "Referência nacional em análises clínicas, vacinas e exames laboratoriais." },
+      hermespardini: { nome: "Hermes Pardini", site: "https://www.hermespardini.com.br", info: "Rede de laboratórios com presença nacional, destaque em exames laboratoriais e de imagem." },
+      delboni: { nome: "Delboni Auriemo", site: "https://www.delboniauriemo.com.br", info: "Laboratório tradicional de São Paulo, parte do grupo Dasa." },
+      albertosabino: { nome: "Alberto Sabin", site: "https://www.albertosabin.com.br", info: "Laboratório de referência em análises clínicas e exames especializados." },
+      weimann: { nome: "Weinmann", site: "https://www.weinmann.com.br", info: "Laboratório referência no Sul do Brasil, parte do grupo Dasa." },
+      "a+": { nome: "a+", site: "https://www.amaissaude.com.br", info: "Laboratório do grupo Fleury, com unidades em várias cidades." },
+      diagnosticosdobrasil: { nome: "Diagnósticos do Brasil", site: "https://www.diagnosticosdobrasil.com.br", info: "Maior laboratório exclusivo para apoio a outros laboratórios do país." }
+    };
+    const hospitais = {
+      albert_einstein: { nome: "Hospital Israelita Albert Einstein", site: "https://www.einstein.br", info: "Referência em medicina de alta complexidade, ensino e pesquisa." },
+      sirio_libanes: { nome: "Hospital Sírio-Libanês", site: "https://www.hospitalsiriolibanes.org.br", info: "Um dos hospitais mais renomados da América Latina, referência em diversas especialidades." },
+      hcor: { nome: "HCor", site: "https://www.hcor.com.br", info: "Hospital do Coração, referência em cardiologia e medicina de alta complexidade." },
+      beneficencia_portuguesa: { nome: "Beneficência Portuguesa", site: "https://www.bp.org.br", info: "Hospital tradicional de São Paulo, referência em diversas áreas médicas." },
+      hospital_moinhos: { nome: "Hospital Moinhos de Vento", site: "https://www.hospitalmoinhos.org.br", info: "Hospital de excelência em Porto Alegre, referência nacional." },
+      hospital_oswaldo_cruz: { nome: "Hospital Alemão Oswaldo Cruz", site: "https://www.hospitaloswaldocruz.org.br", info: "Referência em medicina de alta complexidade e transplantes." },
+      hospital_samaritano: { nome: "Hospital Samaritano", site: "https://www.samaritano.com.br", info: "Hospital de excelência em São Paulo, parte do grupo Americas Serviços Médicos." },
+      hospital_santa_casa: { nome: "Santa Casa de Misericórdia", site: "https://www.santacasasp.org.br", info: "Uma das instituições de saúde mais antigas e tradicionais do Brasil." },
+      hospital_bahia: { nome: "Hospital da Bahia", site: "https://www.hospitaldabahia.com.br", info: "Referência em Salvador e região Nordeste." },
+      // Hospitais de Porto Alegre
+      hcpa: { nome: "Hospital de Clínicas de Porto Alegre", site: "https://www.hcpa.edu.br", info: "Hospital universitário referência em ensino, pesquisa e atendimento de alta complexidade no RS." },
+      sao_lucas_pucrs: { nome: "Hospital São Lucas da PUCRS", site: "https://www.hospitalsaolucas.pucrs.br", info: "Hospital universitário de excelência, referência em diversas especialidades médicas." },
+      ernesto_dornelles: { nome: "Hospital Ernesto Dornelles", site: "https://www.ernestodornelles.com.br", info: "Hospital tradicional de Porto Alegre, referência em atendimento clínico e cirúrgico." },
+      divina_providencia: { nome: "Hospital Divina Providência", site: "https://www.hdp.com.br", info: "Hospital geral com forte atuação em Porto Alegre e região." },
+      santa_casa_poa: { nome: "Santa Casa de Misericórdia de Porto Alegre", site: "https://www.santacasa.org.br", info: "Complexo hospitalar filantrópico, referência em alta complexidade e transplantes." },
+      mae_de_deus: { nome: "Hospital Mãe de Deus", site: "https://www.maededeus.com.br", info: "Hospital privado de excelência, referência em medicina de alta complexidade." },
+      conceicao: { nome: "Hospital Conceição (Grupo Hospitalar Conceição)", site: "https://www.ghc.com.br", info: "Maior complexo hospitalar público do sul do Brasil, referência em diversas especialidades." }
+    };
+    const clinicas = {
+      radson: { nome: "Clínica Radson", site: "https://www.radson.com.br", info: "Referência em diagnóstico por imagem em Porto Alegre." },
+      imagem: { nome: "Clínica Imagem", site: "https://www.clinicaimagem.com.br", info: "Especializada em diagnóstico por imagem, com tradição na cidade." },
+      gastros: { nome: "Clínica Gastros", site: "https://www.gastros.com.br", info: "Referência em gastroenterologia e endoscopia digestiva." },
+      oncoclinicas: { nome: "Oncoclínicas RS", site: "https://www.oncoclinicas.com/clinicas/porto-alegre", info: "Especializada em oncologia, parte do grupo Oncoclínicas." },
+      saopietro: { nome: "Clínica São Pietro", site: "https://www.saopietro.com.br", info: "Referência em medicina nuclear e diagnóstico por imagem." },
+      viver: { nome: "Clínica Viver", site: "https://www.clinicaviver.com.br", info: "Especializada em psicologia e psiquiatria, atendimento humanizado." },
+      oto: { nome: "Clínica Oto", site: "https://www.clinicaoto.com.br", info: "Referência em otorrinolaringologia e exames auditivos." },
+      ocular: { nome: "Clínica Ocular", site: "https://www.clinicaocular.com.br", info: "Especializada em oftalmologia, exames e cirurgias oculares." },
+      cardio: { nome: "Clínica Cardio", site: "https://www.clinicacardio.com.br", info: "Referência em cardiologia e exames cardíacos em Porto Alegre." }
+    };
+    function showPopup(tipo, key) {
+      let data;
+      if (tipo === 'lab') data = labs[key];
+      else if (tipo === 'hosp') data = hospitais[key];
+      else if (tipo === 'clinica') data = clinicas[key];
+      if (!data) return;
+      document.getElementById('popupInfo').innerHTML = `
+        <h2>${data.nome}</h2>
+        <p style="font-size:1.1em; color:#222; margin-bottom:12px;">${data.info}</p>
+        <p><a href="${data.site}" target="_blank" style="color:#007bff; font-weight:600; text-decoration:underline;">Visitar site</a></p>
+      `;
+      document.getElementById('popup').style.display = 'flex';
+    }
+    document.getElementById('selectLab').onchange = function() {
+      if (this.value) showPopup('lab', this.value);
+    };
+    document.getElementById('selectHosp').onchange = function() {
+      if (this.value) showPopup('hosp', this.value);
+    };
+    document.getElementById('selectClinica').onchange = function() {
+      if (this.value) showPopup('clinica', this.value);
+    };
+    document.getElementById('closePopup').onclick = function() {
+      document.getElementById('popup').style.display = 'none';
+    };
+    document.getElementById('popup').onclick = function(e) {
+      if (e.target === this) this.style.display = 'none';
+    };
+  </script>
+</body>
+</html> 

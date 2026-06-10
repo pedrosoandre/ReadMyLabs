@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ReadMyLabs</title>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1048790347778574" crossorigin="anonymous"></script>
+  <script async custom-element="amp-auto-ads"
+          src="https://cdn.ampproject.org/v0/amp-auto-ads-0.1.js"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Adiciona Tesseract.js e PDF.js -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Configurar PDF.js
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="font-family: 'Inter', sans-serif;">
+  <div id="google_translate_element" style="display:none"></div>
+  <amp-auto-ads type="adsense"
+        data-ad-client="ca-pub-1048790347778574">
+  </amp-auto-ads>
+  <header class="toolbar" style="display:flex;align-items:center;justify-content:center;gap:32px;min-height:72px;width:100vw;">
+          <ul class="menu" style="justify-content:center;width:auto;">
+        <li><a href="paginas/labs.html">Labs</a></li>
+        <li><a href="paginas/exames.html">Exames</a></li>
+        <li><a href="paginas/parcerias.html">Parcerias</a></li>
+        <li><a href="paginas/laboratorios_hospitais.html">Laboratórios e Hospitais</a></li>
+      </ul>
+  </header>
+  
+  <header style="width:100%;background:#007BFF;padding:22px 0 18px 0;box-shadow:0 2px 8px rgba(0,0,0,0.07);margin-bottom:32px;">
+    <h1 style="color:#fff;font-family:'Segoe UI',Arial,sans-serif;font-size:2.1em;font-weight:700;text-align:center;letter-spacing:0.04em;margin:0;">Read My Labs</h1>
+  </header>
+
+  <h2 style="color:#007BFF;"> Análise de Documentos e Sintomas</h2>
+  <label for="arquivo"><strong>Envie um documento (PDF ou imagem):</strong></label>
+  <input type="file" id="arquivo" accept=".pdf,image/*" />
+  <div id="recaptcha-exames" style="margin: 16px 0;"></div>
+  <button id="btnUpload" style="margin-top:10px;">Analisar Exame</button>
+
+  <!-- Modal para exibir resultado da análise do documento -->
+  <div id="modalResultado" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+    <div style="background:white;padding:40px;border-radius:15px;width:95vw;height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);position:relative;border:3px solid transparent;background-clip:padding-box;background-image:linear-gradient(white, white), linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);background-origin:border-box;background-clip:padding-box, border-box;">
+      <span id="fecharModal" style="position:absolute;top:15px;right:25px;font-size:28px;cursor:pointer;color:#666;font-weight:bold;z-index:10;">&times;</span>
+      <div id="conteudoModal"></div>
+      <div id="botoesModal" style="margin-top:30px;text-align:center;"></div>
+    </div>
+  </div>
+
+  <hr style="margin:40px 0 30px 0; border:0; border-top:2px solid #007BFF;">
+
+  <h2 style="color:#007BFF;">Análise de Sintomas:</h2>
+  <label for="sintomas">Descreva seus sintomas:</label>
+  <textarea id="sintomas" rows="7" placeholder="Exemplo: estou com dor no peito, febre e calafrios..."></textarea>
+
+  <label for="duracao">Duração dos sintomas:</label>
+  <select id="duracao" class="select-menor">
+    <option value="">Selecione</option>
+    <option value="Menos de 1 dia">Menos de 1 dia</option>
+    <option value="1 a 3 dias">1 a 3 dias</option>
+    <option value="4 a 7 dias">4 a 7 dias</option>
+    <option value="Mais de 1 semana">Mais de 1 semana</option>
+  </select>
+
+  <label for="intensidade">Intensidade da dor:</label>
+  <select id="intensidade" class="select-menor">
+    <option value="">Selecione</option>
+    <option value="Leve">Leve</option>
+    <option value="Moderada">Moderada</option>
+    <option value="Forte">Forte</option>
+    <option value="Insuportável">Insuportável</option>
+  </select>
+
+  <div class="g-recaptcha" data-sitekey="6Lfj2IcrAAAAABVLFqE3bNN9zBb-RqB_9jvPsEf-" style="margin: 20px auto; display: inline-block;"></div>
+  <button onclick="analisarSintomas()" style="margin-top:18px;">Analisar Sintomas</button>
+
+  <div id="resposta"></div>
+
+  <section style="max-width: 900px; margin: 40px auto 0 auto; text-align: left;">
+    <h3 style="margin-bottom: 18px; color: #007bff;">Saúde e Bem-Estar: A Jornada da Medicina e o Papel Fundamental dos Exames</h3>
+    <p style="text-align: justify; margin-bottom: 18px;">A saúde é um dos pilares fundamentais da vida humana. Ao longo dos séculos, a medicina evoluiu de práticas rudimentares para uma ciência altamente especializada e baseada em evidências. Desde os tempos antigos, quando os curandeiros utilizavam ervas e rituais, até os dias atuais, com tecnologias de ponta como a inteligência artificial e a genética personalizada, a busca pelo bem-estar físico, mental e emocional tem sido constante.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">A Organização Mundial da Saúde (OMS) desempenha um papel central nesse processo, promovendo políticas globais de saúde, prevenindo doenças e fomentando o acesso universal à saúde de qualidade. A OMS define saúde não apenas como a ausência de doença, mas como um estado completo de bem-estar físico, mental e social. Essa visão holística reforça a importância de medidas preventivas, como a realização periódica de exames laboratoriais.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">Já o PubMed, uma das maiores bibliotecas científicas do mundo, mantida pelo National Institutes of Health (NIH), reúne milhões de artigos científicos que orientam decisões clínicas e políticas de saúde em todos os países. É lá que médicos, pesquisadores e profissionais de saúde encontram as mais recentes descobertas sobre doenças, tratamentos e diagnósticos. O acesso ao conhecimento científico de qualidade é o que mantém a medicina em constante evolução e permite salvar vidas diariamente.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">Mas nada disso seria possível sem os médicos, profissionais dedicados à arte de cuidar. Eles são os guardiões da saúde pública e individual, e sua formação constante os permite interpretar sintomas, exames e comportamentos com um olhar clínico preciso. Mais do que prescritores de medicamentos, os médicos são orientadores da vida, companheiros na prevenção e no tratamento das doenças.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">Os laboratórios de análises clínicas, por sua vez, são os grandes aliados desses profissionais. A coleta e interpretação correta de exames laboratoriais — como hemogramas, análises hormonais, testes de função renal, exames de imagem, entre outros — são peças-chave no diagnóstico precoce e no monitoramento de condições crônicas, como diabetes, hipertensão, colesterol alto, doenças cardíacas, câncer e infecções.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">É por isso que fazer exames periódicos é mais do que um cuidado: é uma atitude de amor próprio. Muitas doenças são silenciosas no início e só se manifestam quando já estão em estágio avançado. A prevenção, nesse contexto, é a melhor arma. E a rotina de exames deve ser parte do autocuidado, assim como se alimenta bem ou pratica exercícios físicos.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">Nos últimos anos, o avanço tecnológico permitiu que a medicina se tornasse mais acessível, precisa e integrada. Hoje, plataformas como a ReadMyLabs tornam possível analisar exames com o auxílio da inteligência artificial, interpretando sintomas e auxiliando tanto pacientes quanto profissionais de saúde a tomarem decisões informadas.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">A história da medicina está em constante construção. E cada pessoa que se cuida, que realiza exames, que procura um médico ao menor sinal de alerta, contribui para um mundo mais saudável e consciente.</p>
+    <p style="text-align: justify; margin-bottom: 18px;">Lembre-se: cuidar da saúde é um investimento que vale mais do que ouro. Consulte regularmente um médico, confie em laboratórios de confiança e use a tecnologia a seu favor. Sua saúde agradece.</p>
+  </section>
+
+  <script>
+    // Tradução automática para inglês se o navegador estiver em inglês
+    (function() {
+      const userLang = navigator.language || navigator.userLanguage;
+      if (userLang && userLang.startsWith('en')) {
+        var gt = document.createElement('script');
+        gt.type = 'text/javascript';
+        gt.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        document.body.appendChild(gt);
+        document.getElementById('google_translate_element').style.display = 'block';
+      }
+    })();
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'pt',
+        includedLanguages: 'en,pt',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    }
+    let widgetIdExames;
+    window.onload = function() {
+      // Verificar se o reCAPTCHA está disponível
+      if (typeof grecaptcha !== 'undefined') {
+        // Renderizar o reCAPTCHA de exames de forma explícita
+        widgetIdExames = grecaptcha.render('recaptcha-exames', {
+          'sitekey': '6Lfj2IcrAAAAABVLFqE3bNN9zBb-RqB_9jvPsEf-'
+        });
+      } else {
+        console.error('reCAPTCHA não está carregado');
+        // Criar um fallback se o reCAPTCHA não carregar
+        document.getElementById('recaptcha-exames').innerHTML = '<p style="color: red;">Erro ao carregar reCAPTCHA. Recarregue a página.</p>';
+      }
+    };
+
+    // Função para gerar template HTML profissional
+    function gerarTemplateHTML(tipo, dados, analise) {
+      const dataAtual = new Date().toLocaleDateString('pt-BR');
+      let infoPaciente = '';
+      let infoExtra = '';
+      let tituloSecao = '';
+      let metodo = '';
+      let especialidade = '';
+      if (tipo === 'exame') {
+        infoPaciente = `<strong>Arquivo:</strong> ${dados.nomeArquivo}<br>`;
+        infoPaciente += `<strong>Data da Análise:</strong> ${dataAtual}<br>`;
+        infoPaciente += `<strong>Tipo de Exame:</strong> Análise de documento PDF`;
+        tituloSecao = 'Resultado da Análise';
+        metodo = dados.metodo || '';
+      } else {
+        infoPaciente = `<strong>Sintomas:</strong> ${dados.sintomas}<br>`;
+        infoPaciente += `<strong>Duração:</strong> ${dados.duracao}<br>`;
+        infoPaciente += `<strong>Intensidade:</strong> ${dados.intensidade}<br>`;
+        infoPaciente += `<strong>Data da Análise:</strong> ${dataAtual}`;
+        tituloSecao = 'Resultado da Análise de Sintomas';
+        metodo = '';
+      }
+
+      // Separar análise em seções se possível
+      let secaoInter = '', secaoDiag = '', secaoFatores = '', secaoAcao = '', secaoEsp = '', secaoObs = '';
+      // Tenta separar por marcadores, se existirem
+      if (analise.includes('**Interpretação Geral**')) {
+        const regex = /\*\*Interpretação Geral\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoInter = match ? match[1].trim() : '';
+      }
+      if (analise.includes('**Possíveis Causas**') || analise.includes('**Possíveis Diagnósticos**')) {
+        const regex = /\*\*(Possíveis Causas|Possíveis Diagnósticos)\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoDiag = match ? match[2].trim() : '';
+      }
+      if (analise.includes('**Fatores de Atenção**')) {
+        const regex = /\*\*Fatores de Atenção\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoFatores = match ? match[1].trim() : '';
+      }
+      if (analise.includes('**Recomendação de Ação**')) {
+        const regex = /\*\*Recomendação de Ação\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoAcao = match ? match[1].trim() : '';
+      }
+      if (analise.includes('**Especialidades Sugeridas**')) {
+        const regex = /\*\*Especialidades Sugeridas\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoEsp = match ? match[1].trim() : '';
+      }
+      if (analise.includes('**Observações**')) {
+        const regex = /\*\*Observações\*\*:(.*?)(?=\*\*|$)/s;
+        const match = analise.match(regex);
+        secaoObs = match ? match[1].trim() : '';
+      }
+
+      // Fallback: se não conseguir separar, coloca tudo em Interpretação Geral
+      if (!secaoInter && !secaoDiag && !secaoFatores && !secaoAcao && !secaoEsp) {
+        secaoInter = analise;
+      }
+
+      return `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Resultado da Análise - Read My Labs</title>
+        <style>
+          body { font-family: 'Inter', 'Helvetica Neue', sans-serif; background-color: #f7f7f7; margin: 0; padding: 40px; color: #333; }
+          .container { background-color: #fff; max-width: 800px; margin: auto; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #ddd; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e0e0e0; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { font-size: 24px; color: #0d2f66; margin: 0; }
+          .header img { height: 50px; }
+          .section { margin-bottom: 30px; }
+          .section h2 { font-size: 18px; color: #0d2f66; margin-bottom: 10px; border-left: 4px solid #0d2f66; padding-left: 10px; }
+          .section p { font-size: 15px; line-height: 1.6; margin: 0; }
+          .footer { font-size: 13px; color: #777; border-top: 1px solid #ccc; padding-top: 20px; text-align: center; }
+          .highlight { color: #b30000; font-weight: bold; }
+          .button { display: inline-block; margin-top: 20px; padding: 10px 20px; background-color: #0d2f66; color: white; text-decoration: none; border-radius: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Read My Labs</h1>
+            <img src="https://www.weinmann.com.br/imagens/logo.png" alt="Logo Weinmann">
+          </div>
+
+          <div class="section">
+            <h2>${tituloSecao}</h2>
+            <p>${infoPaciente}</p>
+          </div>
+
+          <div class="section">
+            <h2>Interpretação Geral</h2>
+            <p>${secaoInter}</p>
+          </div>
+
+          <div class="section">
+            <h2>Possíveis Diagnósticos</h2>
+            <p>${secaoDiag}</p>
+          </div>
+
+          <div class="section">
+            <h2>Fatores de Atenção</h2>
+            <p>${secaoFatores}</p>
+          </div>
+
+          <div class="section">
+            <h2>Recomendação de Ação</h2>
+            <p>${secaoAcao}</p>
+          </div>
+
+          <div class="section">
+            <h2>Especialidades Sugeridas</h2>
+            <p>${secaoEsp}</p>
+          </div>
+
+          <div class="section">
+            <h2>Observações</h2>
+            <p>Lembre-se, esta é apenas uma orientação educativa baseada nos dados fornecidos. A consulta com um profissional de saúde é essencial para uma avaliação adequada e personalizada.</p>
+          </div>
+
+          <div class="footer">
+            Baseado nas diretrizes médicas internacionais e evidências científicas. <br>
+            © 2025 Read My Labs. Todos os direitos reservados.
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+    }
+
+    // Função para gerar PDF do template HTML
+    function gerarPDF(tipo, dados, analise) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // Configurações de fonte
+      doc.setFont("helvetica");
+      doc.setFontSize(20);
+      
+      // Título principal
+      doc.setTextColor(13, 47, 102); // Azul escuro
+      doc.text("Read My Labs", 105, 20, { align: "center" });
+      
+      // Subtítulo
+      doc.setFontSize(16);
+      doc.setTextColor(0, 0, 0);
+      const titulo = tipo === 'exame' ? 'Análise de Exame Laboratorial' : 'Análise de Sintomas';
+      doc.text(titulo, 105, 35, { align: "center" });
+      
+      // Data
+      doc.setFontSize(12);
+      const dataAtual = new Date().toLocaleDateString('pt-BR');
+      doc.text(`Data da análise: ${dataAtual}`, 105, 45, { align: "center" });
+      
+      // Linha separadora
+      doc.setDrawColor(13, 47, 102);
+      doc.line(20, 50, 190, 50);
+      
+      // Dados do paciente
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      let y = 65;
+      
+      if (tipo === 'exame') {
+        doc.text(`Arquivo: ${dados.nomeArquivo}`, 20, y);
+        y += 10;
+      } else {
+        doc.text(`Sintomas: ${dados.sintomas}`, 20, y);
+        y += 10;
+        doc.text(`Duração: ${dados.duracao}`, 20, y);
+        y += 10;
+        doc.text(`Intensidade: ${dados.intensidade}`, 20, y);
+        y += 15;
+      }
+      
+      // Análise
+      doc.setFontSize(12);
+      const maxWidth = 170;
+      const lineHeight = 7;
+      
+      const linhas = doc.splitTextToSize(analise, maxWidth);
+      
+      for (let i = 0; i < linhas.length; i++) {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(linhas[i], 20, y);
+        y += lineHeight;
+      }
+      
+      // Rodapé
+      doc.setFontSize(10);
+      doc.setTextColor(128, 128, 128);
+      doc.text("Este documento foi gerado automaticamente pelo Read My Labs.", 105, 280, { align: "center" });
+      doc.text("Para diagnóstico definitivo, consulte sempre um profissional de saúde.", 105, 285, { align: "center" });
+      
+      // Nome do arquivo
+      const nomeArquivo = `readmylabs_${tipo}_${dataAtual.replace(/\//g, '-')}.pdf`;
+      
+      // Download do PDF
+      doc.save(nomeArquivo);
+    }
+
+    async function analisarSintomas() {
+      const sintomas = document.getElementById('sintomas').value.trim();
+      const duracao = document.getElementById('duracao').value.trim();
+      const intensidade = document.getElementById('intensidade').value.trim();
+
+      if (!sintomas) {
+        alert("Descreva os sintomas antes de enviar.");
+        return;
+      }
+
+      // Capturar token do reCAPTCHA
+      const recaptchaResponse = grecaptcha.getResponse();
+      if (!recaptchaResponse) {
+        alert("Por favor, marque o reCAPTCHA antes de continuar.");
+        return;
+      }
+
+      const respostaDiv = document.getElementById('resposta');
+      respostaDiv.innerHTML = "⏳ Analisando sintomas...";
+
+      try {
+        const formData = new FormData();
+        formData.append('tipo', 'sintomas');
+        formData.append('sintomas', sintomas);
+        formData.append('duracao', duracao);
+        formData.append('intensidade', intensidade);
+        formData.append('g-recaptcha-response', recaptchaResponse);
+
+        const resposta = await fetch('analisar.php', {
+          method: 'POST',
+          body: formData
+        });
+
+        const textoBruto = await resposta.text();
+        console.log("🔍 Resposta bruta do PHP:", textoBruto);
+
+        let dados;
+        try {
+          dados = JSON.parse(textoBruto);
+        } catch (e) {
+          respostaDiv.innerHTML = "❌ Erro no retorno do servidor: resposta inválida.";
+          return;
+        }
+
+        // Verificar se o limite foi atingido
+        if (dados.limite_atingido) {
+          mostrarPopupLimite(dados.resposta);
+          return;
+        }
+
+        // Gerar template HTML
+        const dadosSintomas = {
+          sintomas: sintomas,
+          duracao: duracao,
+          intensidade: intensidade
+        };
+        
+        const templateHTML = gerarTemplateHTML('sintomas', dadosSintomas, dados.resposta);
+        
+                 // Criar iframe para exibir o template
+         const iframe = document.createElement('iframe');
+         iframe.style.width = '100%';
+         iframe.style.height = '70vh';
+         iframe.style.border = 'none';
+         iframe.style.borderRadius = '12px';
+         iframe.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        
+        const resultadoHTML = `
+          <div style="margin-top: 20px;">
+            <button onclick="gerarPDF('sintomas', ${JSON.stringify(dadosSintomas)}, \`${dados.resposta.replace(/`/g, '\\`')}\`)" 
+                    style="background-color:#0d2f66; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer; margin-bottom:15px;">
+              📄 Baixar PDF
+            </button>
+          </div>
+        `;
+        
+        respostaDiv.innerHTML = resultadoHTML;
+        respostaDiv.appendChild(iframe);
+        
+        // Escrever o HTML no iframe
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(templateHTML);
+        iframe.contentDocument.close();
+        
+        // Processar medicamentos se existirem na resposta
+        if (dados.resposta.includes('MEDICAMENTOS SUGERIDOS:')) {
+            const medicamentosMatch = dados.resposta.match(/MEDICAMENTOS SUGERIDOS:(.*?)(?=\n\n|\Z)/s);
+            if (medicamentosMatch) {
+                const medicamentosTexto = medicamentosMatch[1].trim();
+                localStorage.setItem('medicamentos', medicamentosTexto);
+                
+                // Extrair medicamentos para atualização de preços
+                const medicamentosArray = extrairMedicamentosParaAPI(medicamentosTexto);
+                localStorage.setItem('medicamentosArray', JSON.stringify(medicamentosArray));
+            }
+        }
+        
+        // VERIFICAÇÃO DE SEGURANÇA: Garantir que não há dados pessoais em análise de sintomas
+        let respostaLimpa = dados.resposta;
+        if (respostaLimpa && (respostaLimpa.includes('LUCINDA') || respostaLimpa.includes('Lucinda') || respostaLimpa.includes('DORNELLES') || respostaLimpa.includes('06/05/2025') || respostaLimpa.includes('Farrapos') || respostaLimpa.includes('Floresta') || respostaLimpa.includes('Porto Alegre'))) {
+            console.error('🚨 DADOS PESSOAIS DETECTADOS NA RESPOSTA DA IA - LIMPANDO!');
+            respostaLimpa = respostaLimpa.replace(/LUCINDA|Lucinda|DORNELLES|06\/05\/2025|Farrapos|Floresta|Porto Alegre/gi, '[DADOS REMOVIDOS]');
+        }
+        
+        // Salvar dados no localStorage e redirecionar para resultado-sintomas.html
+        localStorage.setItem('resultado', respostaLimpa);
+        localStorage.setItem('tipo', 'sintomas');
+        localStorage.setItem('info', `Sintomas: ${sintomas}\nDuração: ${duracao}\nIntensidade: ${intensidade}`);
+        localStorage.removeItem('pdf'); // PDF será gerado na página de resultado
+        window.location.href = 'paginas/resultado-sintomas.html';
+        grecaptcha.reset();
+      } catch (erro) {
+        console.error("🔥 Erro na requisição:", erro);
+        respostaDiv.innerHTML = "❌ Erro ao analisar. Tente novamente.";
+      }
+    }
+
+    // Função para mostrar o modal
+    function mostrarModal(conteudo, dadosExame = null, analise = null) {
+      if (dadosExame && analise) {
+        // Gerar template HTML para exame
+        const templateHTML = gerarTemplateHTML('exame', dadosExame, analise);
+        
+                 // Criar iframe para exibir o template
+         const iframe = document.createElement('iframe');
+         iframe.style.width = '100%';
+         iframe.style.height = '85vh';
+         iframe.style.border = 'none';
+         iframe.style.borderRadius = '12px';
+         iframe.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+        
+        const botoesDiv = document.getElementById('botoesModal');
+        botoesDiv.innerHTML = `
+          <button onclick="gerarPDF('exame', ${JSON.stringify(dadosExame)}, \`${analise.replace(/`/g, '\\`')}\`)" 
+                  style="background-color:#0d2f66; color:white; border:none; padding:10px 20px; border-radius:5px; cursor:pointer;">
+            📄 Baixar PDF
+          </button>
+        `;
+        
+        document.getElementById('conteudoModal').innerHTML = '';
+        document.getElementById('conteudoModal').appendChild(iframe);
+        
+        // Escrever o HTML no iframe
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(templateHTML);
+        iframe.contentDocument.close();
+      } else {
+        document.getElementById('conteudoModal').innerHTML = conteudo;
+        document.getElementById('botoesModal').innerHTML = '';
+      }
+      
+      document.getElementById('modalResultado').style.display = 'flex';
+    }
+    
+    // Fechar modal ao clicar no X
+    document.getElementById('fecharModal').onclick = function() {
+      document.getElementById('modalResultado').style.display = 'none';
+    };
+    // Fechar modal ao clicar fora do conteúdo
+    document.getElementById('modalResultado').onclick = function(e) {
+      if (e.target === this) this.style.display = 'none';
+    };
+
+    // Função para extrair medicamentos para API
+    function extrairMedicamentosParaAPI(texto) {
+        const medicamentos = [];
+        const linhas = texto.split('\n');
+        let categoriaAtual = '';
+        
+        linhas.forEach(linha => {
+            linha = linha.trim();
+            if (linha && !linha.match(/^\d+\./)) {
+                // É uma categoria
+                categoriaAtual = linha.replace(':', '');
+            } else if (linha.match(/^\d+\.\s*(.*?)\s*-\s*R\$\s*([\d,]+)/)) {
+                // É um medicamento
+                const match = linha.match(/^\d+\.\s*(.*?)\s*-\s*R\$\s*([\d,]+)/);
+                const nome = match[1].replace(/\(.*?\)/g, '').trim();
+                const preco = match[2];
+                const tipo = determinarTipoMedicamento(nome);
+                
+                medicamentos.push({
+                    nome: nome,
+                    tipo: tipo,
+                    categoria: categoriaAtual,
+                    preco: preco
+                });
+            }
+        });
+        
+        return medicamentos;
+    }
+
+    // Função para determinar tipo de medicamento
+    function determinarTipoMedicamento(nome) {
+        const nomeLower = nome.toLowerCase();
+        if (nomeLower.includes('referência') || nomeLower.includes('original')) return 'referencia';
+        if (nomeLower.includes('similar')) return 'similar';
+        if (nomeLower.includes('genérico') || nomeLower.includes('generico')) return 'generico';
+        return 'generico';
+    }
+
+    // Substituir analisarDocumento para usar OCR no navegador
+    async function analisarDocumento() {
+      const input = document.getElementById('arquivo');
+      if (!input.files || input.files.length === 0) {
+        alert('Selecione um exame (PDF ou imagem) para análise.');
+        return;
+      }
+      
+      // Verificar se o reCAPTCHA foi preenchido
+      const recaptchaResponse = grecaptcha.getResponse(widgetIdExames);
+      if (!recaptchaResponse) {
+        alert('Por favor, marque o reCAPTCHA antes de continuar.');
+        return;
+      }
+      const file = input.files[0];
+      let textoExtraido = '';
+      
+      if (file.type.startsWith('image/')) {
+        // OCR direto em imagem
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+          mostrarModal('⏳ Realizando OCR na imagem...');
+          const { data: { text } } = await Tesseract.recognize(
+            e.target.result,
+            'por',
+            { logger: m => console.log(m) }
+          );
+          textoExtraido = text;
+          enviarTextoParaBackend(textoExtraido, file.name);
+        };
+        reader.readAsDataURL(file);
+        return;
+      } else if (file.type === 'application/pdf') {
+        // Método 1: Tentar extrair texto pesquisável do PDF primeiro
+        if (window.pdfjsLib) {
+          try {
+            mostrarModal('⏳ Extraindo texto pesquisável do PDF...');
+            const pdfData = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: pdfData }).promise;
+            let textoTotal = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              const pageText = content.items.map(item => item.str).join(' ');
+              textoTotal += pageText + '\n';
+            }
+            if (textoTotal.replace(/\s/g, '').length > 0) {
+              // Se encontrou texto, envia para o backend
+              enviarTextoParaBackend(textoTotal, file.name);
+              return;
+            }
+            // Se não encontrou texto, faz OCR
+            mostrarModal('⏳ Não foi encontrado texto pesquisável. Realizando OCR...');
+          } catch (e) {
+            console.log('PDF.js falhou, tentando OCR direto:', e);
+            mostrarModal('⏳ PDF.js não disponível. Realizando OCR...');
+          }
+        }
+        
+        // Método 2: OCR em PDF usando PDF.js + Tesseract.js
+        if (window.pdfjsLib) {
+          try {
+            const pdfData = await file.arrayBuffer();
+            const pdf = await window.pdfjsLib.getDocument({ data: pdfData }).promise;
+            let textoTotal = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const viewport = page.getViewport({ scale: 2 });
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.width = viewport.width;
+              canvas.height = viewport.height;
+              await page.render({ canvasContext: context, viewport: viewport }).promise;
+              const dataUrl = canvas.toDataURL('image/png');
+              const { data: { text } } = await Tesseract.recognize(
+                dataUrl,
+                'por',
+                { logger: m => console.log(m) }
+              );
+              textoTotal += text + '\n';
+            }
+            enviarTextoParaBackend(textoTotal, file.name);
+            return;
+          } catch (erro) {
+            console.log('OCR com PDF.js falhou:', erro);
+          }
+        }
+        
+        // Método 3: Fallback - enviar arquivo para o backend tentar extrair
+        mostrarModal('⏳ Enviando arquivo para processamento no servidor...');
+        const formData = new FormData();
+        formData.append('tipo', 'exame');
+        formData.append('arquivo', file);
+        const recaptchaResponse = grecaptcha.getResponse(widgetIdExames);
+        formData.append('g-recaptcha-response', recaptchaResponse);
+        
+        fetch('analisar.php', {
+          method: 'POST',
+          body: formData
+        })
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+          })
+          .then(dados => {
+            if (!dados || !dados.resposta) {
+              throw new Error('Resposta inválida do servidor');
+            }
+            
+            // Verificar se o limite foi atingido
+            if (dados.limite_atingido) {
+              mostrarPopupLimite(dados.resposta);
+              return;
+            }
+            
+                      // Processar medicamentos se existirem na resposta
+          if (dados.resposta.includes('MEDICAMENTOS SUGERIDOS:')) {
+            const medicamentosMatch = dados.resposta.match(/MEDICAMENTOS SUGERIDOS:(.*?)(?=\n\n|\Z)/s);
+            if (medicamentosMatch) {
+              localStorage.setItem('medicamentos', medicamentosMatch[1]);
+            }
+          }
+          
+          // Extrair informações do laboratório da resposta
+          let infoLab = `Arquivo: ${file.name}`;
+          if (dados.resposta.includes('🏥 Laboratório:')) {
+            const labMatch = dados.resposta.match(/🏥 Laboratório:\s*([^\n]+)/);
+            if (labMatch) {
+              infoLab += `\nLaboratório: ${labMatch[1].trim()}`;
+            }
+          }
+          
+          localStorage.setItem('resultado', dados.resposta);
+          localStorage.setItem('tipo', 'exame');
+          localStorage.setItem('info', infoLab);
+          localStorage.removeItem('pdf');
+          window.location.href = 'paginas/resultado-exame.html';
+          grecaptcha.reset(widgetIdExames);
+          })
+          .catch((error) => {
+            console.error('Erro na requisição:', error);
+            mostrarModal(`❌ Erro ao processar arquivo: ${error.message}. Tente novamente.`);
+            grecaptcha.reset(widgetIdExames);
+          });
+        return;
+      } else {
+        alert('Formato de arquivo não suportado para OCR. Envie uma imagem ou PDF.');
+        return;
+      }
+    }
+
+    function enviarTextoParaBackend(textoExtraido, nomeArquivo) {
+      const formData = new FormData();
+      formData.append('tipo', 'exame');
+      formData.append('conteudo_ocr', textoExtraido);
+      formData.append('nome_arquivo', nomeArquivo);
+      // Adicione o token do reCAPTCHA se necessário
+      const recaptchaResponse = grecaptcha.getResponse(widgetIdExames);
+      formData.append('g-recaptcha-response', recaptchaResponse);
+      
+      fetch('analisar.php', {
+        method: 'POST',
+        body: formData
+      })
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(dados => {
+          if (!dados || !dados.resposta) {
+            throw new Error('Resposta inválida do servidor');
+          }
+          
+          // Verificar se o limite foi atingido
+          if (dados.limite_atingido) {
+            mostrarPopupLimite(dados.resposta);
+            return;
+          }
+          
+          // Processar medicamentos se existirem na resposta
+          if (dados.resposta.includes('MEDICAMENTOS SUGERIDOS:')) {
+            const medicamentosMatch = dados.resposta.match(/MEDICAMENTOS SUGERIDOS:(.*?)(?=\n\n|\Z)/s);
+            if (medicamentosMatch) {
+              localStorage.setItem('medicamentos', medicamentosMatch[1]);
+            }
+          }
+          
+          // Extrair informações do laboratório da resposta
+          let infoLab = `Arquivo: ${nomeArquivo}`;
+          if (dados.resposta.includes('🏥 Laboratório:')) {
+            const labMatch = dados.resposta.match(/🏥 Laboratório:\s*([^\n]+)/);
+            if (labMatch) {
+              infoLab += `\nLaboratório: ${labMatch[1].trim()}`;
+            }
+          }
+          
+                  // Salvar dados no localStorage e redirecionar para resultado-exame.html
+        localStorage.setItem('resultado', dados.resposta);
+        localStorage.setItem('tipo', 'exame');
+        localStorage.setItem('info', infoLab);
+        localStorage.removeItem('pdf');
+        window.location.href = 'paginas/resultado-exame.html';
+          grecaptcha.reset(widgetIdExames);
+        })
+        .catch((error) => {
+          console.error('Erro na requisição:', error);
+          mostrarModal(`❌ Erro ao enviar texto extraído para análise: ${error.message}.`);
+          grecaptcha.reset(widgetIdExames);
+        });
+    }
+    
+    // Função para mostrar popup de limite atingido
+    function mostrarPopupLimite(mensagem) {
+      // Criar overlay
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(5px);
+      `;
+      
+      // Criar popup
+      const popup = document.createElement('div');
+      popup.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: popupSlideIn 0.3s ease-out;
+      `;
+      
+      // Conteúdo do popup
+      popup.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 48px; margin-bottom: 15px;">⏰</div>
+          <h2 style="color: #d32f2f; margin: 0 0 15px 0; font-size: 24px;">Limite Diário Atingido</h2>
+          <p style="color: #666; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;">
+            ${mensagem}
+          </p>
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+              <strong>ℹ️ Informação:</strong> O acesso será liberado automaticamente após 24 horas.
+            </p>
+          </div>
+        </div>
+        <button onclick="fecharPopupLimite()" style="
+          background: #0d2f66;
+          color: white;
+          border: none;
+          padding: 12px 30px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.background='#0a1f4d'" onmouseout="this.style.background='#0d2f66'">
+          Entendi
+        </button>
+      `;
+      
+      // Adicionar CSS para animação
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes popupSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Adicionar ao DOM
+      overlay.appendChild(popup);
+      document.body.appendChild(overlay);
+      
+      // Fechar ao clicar fora do popup
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          fecharPopupLimite();
+        }
+      });
+      
+      // Fechar com ESC
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          fecharPopupLimite();
+        }
+      });
+    }
+    
+    // Função para fechar popup
+    function fecharPopupLimite() {
+      const overlay = document.querySelector('div[style*="position: fixed"]');
+      if (overlay) {
+        overlay.remove();
+      }
+    }
+    
+    // Adiciona evento ao botão de upload
+    document.getElementById('btnUpload').onclick = analisarDocumento;
+  </script>
+
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
+  <footer style="margin-top:40px; color:#888; font-size:0.95em; text-align:center;">
+    <nav>
+      <a href="paginas/termos.html" target="_blank">Termos de Uso</a> |
+      <a href="paginas/privacidade.html" target="_blank">Política de Privacidade</a>
+    </nav>
+    <div style="margin-top:8px;">
+      <strong>Contato:</strong> <a href="mailto:contato@readmylabs.com.br">contato@readmylabs.com.br</a>
+    </div>
+    <div style="margin-top:8px;">© 2025 Read My Labs. Todos os direitos reservados.</div>
+  </footer>
+ 
+  
+</body>
+</html>

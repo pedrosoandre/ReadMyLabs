@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadMyLabs - Planos e Preços</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #222;
+            background-color: #f8fbff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header {
+            background: #007BFF;
+            color: white;
+            padding: 80px 0 60px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .header p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Navigation */
+        .toolbar {
+            width: 100%;
+            background: #007BFF;
+            padding: 0;
+            margin: 0;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 32px;
+        }
+
+        .menu li a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            padding: 18px 24px;
+            display: block;
+            border-radius: 8px 8px 0 0;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .menu li a:hover {
+            background: #0056b3;
+            color: #e3f2fd;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            padding: 80px 0;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 60px;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px 30px;
+            box-shadow: 0 2px 12px rgba(0,123,255,0.09);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,123,255,0.15);
+        }
+
+        .pricing-card.featured {
+            border-color: #007BFF;
+            transform: scale(1.05);
+        }
+
+        .pricing-card.featured::before {
+            content: "Mais Popular";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #007BFF;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .plan-description {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .price {
+            margin-bottom: 30px;
+        }
+
+        .price-amount {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #007BFF;
+        }
+
+        .price-period {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .price-note {
+            font-size: 0.875rem;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .features {
+            list-style: none;
+            margin-bottom: 40px;
+        }
+
+        .features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+        }
+
+        .features li:last-child {
+            border-bottom: none;
+        }
+
+        .features li::before {
+            content: "✓";
+            color: #007BFF;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+
+        .cta-button {
+            width: 100%;
+            padding: 14px 0;
+            border: none;
+            border-radius: 22px;
+            font-size: 1.08em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            border: 2px solid #6ec1ff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .cta-button.primary {
+            background: #007BFF;
+            color: white;
+        }
+
+        .cta-button.primary:hover {
+            background: #0056b3;
+            border-color: #2196f3;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.16), 0 1.5px 4px rgba(0,0,0,0.10);
+            transform: translateY(-2px) scale(1.04);
+        }
+
+        .cta-button.secondary {
+            background: #f8fbff;
+            color: #007BFF;
+            border: 2px solid #b3d1f7;
+        }
+
+        .cta-button.secondary:hover {
+            background: #e3f2fd;
+            border-color: #007BFF;
+            transform: translateY(-2px);
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .faq-item {
+            background: #f8fbff;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1.8px solid #b3d1f7;
+        }
+
+        .faq-item h3 {
+            color: #007BFF;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+
+        .faq-item p {
+            color: #222;
+            line-height: 1.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .pricing-card {
+                padding: 30px 20px;
+            }
+
+            .pricing-card.featured {
+                transform: none;
+            }
+
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .menu {
+                gap: 4px;
+            }
+
+            .menu li a {
+                font-size: 0.85em;
+                padding: 8px 3px;
+                border-radius: 5px 5px 0 0;
+            }
+        }
+
+        /* Additional styling */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #007BFF;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.125rem;
+            color: #666;
+            max-width: 600px;
+            margin: 0 auto 60px;
+        }
+
+        .highlight {
+            background: linear-gradient(120deg, #b3d1f7 0%, #e3f2fd 100%);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <header class="toolbar">
+        <ul class="menu">
+            <li><a href="../index.html">Início</a></li>
+            <li><a href="labs.html">Labs</a></li>
+            <li><a href="exames.html">Exames</a></li>
+            <li><a href="parcerias.html">Parcerias</a></li>
+            <li><a href="laboratorios_hospitais.html">Laboratórios</a></li>
+        </ul>
+    </header>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <h1>Planos e Preços</h1>
+            <p>Escolha o plano perfeito para suas necessidades de análise de exames. Sem taxas ocultas, sem surpresas.</p>
+        </div>
+    </header>
+
+    <!-- Pricing Section -->
+    <section class="pricing-section">
+        <div class="container">
+            <div class="pricing-grid">
+                <!-- Plano Gratuito -->
+                <div class="pricing-card">
+                    <h3 class="plan-name">Gratuito</h3>
+                    <p class="plan-description">Perfeito para começar a usar a análise de exames</p>
+                    
+                    <div class="price">
+                        <div class="price-amount">R$ 0</div>
+                        <div class="price-period">para sempre</div>
+                        <div class="price-note">Sem cartão de crédito necessário</div>
+                    </div>
+
+                    <ul class="features">
+                        <li>5 análises de exames por mês</li>
+                        <li>Análise básica de sintomas</li>
+                        <li>Suporte da comunidade</li>
+                        <li>Tempo de resposta padrão</li>
+                        <li>Acesso básico à documentação</li>
+                        <li>Interpretação de exames simples</li>
+                    </ul>
+
+                    <a href="../index.html" class="cta-button secondary">Começar Grátis</a>
+                </div>
+
+                <!-- Plano Pro -->
+                <div class="pricing-card featured">
+                    <h3 class="plan-name">Profissional</h3>
+                    <p class="plan-description">Para profissionais de saúde e pequenas clínicas</p>
+                    
+                    <div class="price">
+                        <div class="price-amount">R$ 49</div>
+                        <div class="price-period">por mês</div>
+                        <div class="price-note">Cobrado mensalmente • Cancele a qualquer momento</div>
+                    </div>
+
+                    <ul class="features">
+                        <li>Análises ilimitadas de exames</li>
+                        <li>Análise avançada de sintomas</li>
+                        <li>Suporte prioritário</li>
+                        <li>Tempos de resposta mais rápidos</li>
+                        <li>Acesso completo à documentação</li>
+                        <li>Interpretação detalhada de exames</li>
+                        <li>Recursos de colaboração em equipe</li>
+                        <li>Acesso à API</li>
+                        <li>Relatórios personalizados</li>
+                        <li>Integração com sistemas médicos</li>
+                    </ul>
+
+                    <a href="#" class="cta-button primary">Iniciar Teste Grátis</a>
+                </div>
+
+                <!-- Plano Enterprise -->
+                <div class="pricing-card">
+                    <h3 class="plan-name">Empresarial</h3>
+                    <p class="plan-description">Para grandes hospitais e redes de laboratórios</p>
+                    
+                    <div class="price">
+                        <div class="price-amount">Personalizado</div>
+                        <div class="price-period">entre em contato</div>
+                        <div class="price-note">Adaptado às suas necessidades</div>
+                    </div>
+
+                    <ul class="features">
+                        <li>Tudo do plano Profissional</li>
+                        <li>Equipe de suporte dedicada</li>
+                        <li>Integrações personalizadas</li>
+                        <li>Garantias de SLA</li>
+                        <li>Implantação on-premise</li>
+                        <li>Recursos avançados de segurança</li>
+                        <li>Treinamento e onboarding personalizados</li>
+                        <li>Analytics e relatórios avançados</li>
+                        <li>Conformidade com LGPD</li>
+                        <li>Suporte 24/7</li>
+                    </ul>
+
+                    <a href="#" class="cta-button secondary">Falar com Vendas</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section">
+        <div class="container">
+            <h2 class="section-title">Perguntas Frequentes</h2>
+            <p class="section-subtitle">Tudo que você precisa saber sobre nossos planos e preços</p>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>Posso alterar meu plano a qualquer momento?</h3>
+                    <p>Sim! Você pode fazer upgrade, downgrade ou cancelar sua assinatura a qualquer momento. As alterações entram em vigor imediatamente e faremos o rateio de qualquer cobrança.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Quais métodos de pagamento vocês aceitam?</h3>
+                    <p>Aceitamos todos os principais cartões de crédito (Visa, Mastercard, American Express) e PIX. Clientes empresariais também podem pagar via boleto com prazo de 30 dias.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Existe um período de teste gratuito?</h3>
+                    <p>Sim! Todos os planos pagos vêm com um teste gratuito de 14 dias. Não é necessário cartão de crédito para iniciar seu teste. Você pode cancelar a qualquer momento durante o período de teste.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Vocês oferecem reembolso?</h3>
+                    <p>Oferecemos uma garantia de reembolso de 30 dias para todos os planos pagos. Se você não estiver satisfeito, entre em contato com nossa equipe de suporte para um reembolso completo.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>O que acontece se eu exceder meus limites de uso?</h3>
+                    <p>Para usuários Profissionais, você receberá uma notificação ao se aproximar dos limites. Você pode fazer upgrade para um nível superior ou comprar créditos adicionais conforme necessário.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Meus dados estão seguros?</h3>
+                    <p>Absolutamente. Utilizamos medidas de segurança de nível empresarial, incluindo criptografia de ponta a ponta, conformidade com LGPD e auditorias de segurança regulares para proteger seus dados.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Vocês oferecem suporte em português?</h3>
+                    <p>Sim! Nossa equipe de suporte fala português e está disponível para ajudar com qualquer dúvida sobre análise de exames, interpretação de resultados ou uso da plataforma.</p>
+                </div>
+
+                <div class="faq-item">
+                    <h3>Posso usar em múltiplos dispositivos?</h3>
+                    <p>Sim! Sua conta pode ser acessada de qualquer dispositivo com conexão à internet. Todos os seus exames e análises ficam sincronizados automaticamente.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background: #007BFF; color: white; padding: 40px 0; text-align: center;">
+        <div class="container">
+            <p>&copy; 2024 ReadMyLabs. Todos os direitos reservados. | <a href="privacidade.html" style="color: #b3d1f7;">Política de Privacidade</a> | <a href="termos.html" style="color: #b3d1f7;">Termos de Uso</a></p>
+        </div>
+    </footer>
+</body>
+</html> 

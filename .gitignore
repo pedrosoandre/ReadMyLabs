@@ -1,0 +1,29 @@
+# Secrets — NUNCA versionar
+.env
+*.env.local
+
+# Rate limiting — dados de runtime
+limite_ip/
+
+# Dependências PHP (geradas pelo composer)
+vendor/
+
+# Arquivos de teste e debug removidos do repositório
+teste-*.php
+teste_*.php
+debug-*.html
+limpar-limite.php
+zerar-contagem.php
+
+# Logs e caches
+*.log
+*.cache
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
