@@ -214,6 +214,33 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
 .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
 .reveal.in{opacity:1;transform:none}
 
+/* PAYWALL */
+.paywall{position:fixed;inset:0;z-index:100;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;background:rgba(7,7,13,.82);backdrop-filter:blur(16px);overflow-y:auto}
+.paywall.show{display:flex}
+.pw-box{max-width:780px;width:100%;margin:auto;background:var(--bg-2);border:1px solid var(--stroke-2);border-radius:26px;padding:38px 34px;animation:rise .5s var(--ease)}
+.pw-eyebrow{font-family:"JetBrains Mono";font-size:12px;letter-spacing:.04em;color:var(--cyan);text-transform:uppercase;margin-bottom:12px;text-align:center}
+.pw-box h3{font-family:"Space Grotesk";font-size:clamp(22px,4vw,32px);font-weight:700;text-align:center;letter-spacing:-.02em;line-height:1.12}
+.pw-sub{text-align:center;color:var(--muted);font-size:15px;margin-top:10px}
+.pw-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:30px}
+.pw-card{position:relative;border-radius:18px;padding:26px 22px;background:var(--panel);border:1px solid var(--stroke);display:flex;flex-direction:column}
+.pw-card.best{background:linear-gradient(150deg,rgba(124,131,255,.16),rgba(95,227,255,.07));border:1px solid rgba(124,131,255,.55)}
+.pw-tag{position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;border-radius:999px;background:linear-gradient(120deg,var(--indigo),var(--violet));color:#fff;white-space:nowrap;box-shadow:0 8px 22px rgba(124,131,255,.45)}
+.pw-name{font-family:"Space Grotesk";font-weight:600;font-size:17px}
+.pw-desc{font-size:13px;color:var(--faint);margin-top:3px}
+.pw-price{margin:16px 0 2px;font-family:"Space Grotesk";font-weight:700;font-size:38px;letter-spacing:-.03em}
+.pw-price small{font-size:14px;font-weight:500;color:var(--muted);letter-spacing:0}
+.pw-per{font-size:12.5px;color:var(--faint);margin-bottom:14px}
+.pw-list{list-style:none;display:flex;flex-direction:column;gap:9px;margin:4px 0 20px;flex:1}
+.pw-list li{display:flex;gap:9px;font-size:13.5px;color:var(--muted);align-items:flex-start}
+.pw-list li svg{width:16px;height:16px;flex-shrink:0;margin-top:2px;stroke:var(--good)}
+.pw-list li.no{color:var(--faint)}
+.pw-list li.no svg{stroke:var(--faint)}
+.pw-card .btn{width:100%;justify-content:center}
+.pw-skip{display:block;margin:20px auto 0;background:none;border:none;color:var(--faint);font-size:13px;cursor:pointer;text-decoration:underline;font-family:inherit}
+.pw-skip:hover{color:var(--muted)}
+.pw-note{margin-top:14px;text-align:center;font-size:12px;color:var(--faint)}
+@media(max-width:620px){.pw-cards{grid-template-columns:1fr;gap:22px}.pw-box{padding:28px 18px}.pw-price{font-size:32px}}
+
 @media(max-width:980px){
   .hero-grid,.sym-grid,.b2b-grid{grid-template-columns:1fr;gap:36px}
   .steps,.exam-grid{grid-template-columns:1fr 1fr}
@@ -501,6 +528,45 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
   </div>
 </footer>
 
+<div class="paywall" id="paywall" role="dialog" aria-modal="true" aria-label="Planos do ReadMyLabs">
+  <div class="pw-box">
+    <div class="pw-eyebrow">Sua análise gratuita já foi usada</div>
+    <h3>Continue entendendo seus exames.</h3>
+    <p class="pw-sub">Escolha como quer seguir — ativação na hora pelo WhatsApp, sem cadastro complicado.</p>
+    <div class="pw-cards">
+      <div class="pw-card">
+        <div class="pw-name">Análise avulsa</div>
+        <div class="pw-desc">Para quem só precisa de uma leitura agora</div>
+        <div class="pw-price">R$ 14,90</div>
+        <div class="pw-per">pagamento único · vale para 1 exame</div>
+        <ul class="pw-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> 1 análise completa de exame</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Resultado na hora</li>
+          <li class="no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Análise de sintomas ilimitada</li>
+          <li class="no"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg> Novas análises quando precisar</li>
+        </ul>
+        <a class="btn btn-ghost" target="_blank" rel="noopener" href="https://wa.me/5551999009551?text=Ol%C3%A1!%20Quero%20comprar%201%20an%C3%A1lise%20avulsa%20do%20ReadMyLabs%20%28R%24%2014%2C90%29.">Comprar 1 análise</a>
+      </div>
+      <div class="pw-card best">
+        <div class="pw-tag">Melhor escolha</div>
+        <div class="pw-name">Ilimitado</div>
+        <div class="pw-desc">Todos os seus exames, o ano inteiro</div>
+        <div class="pw-price">R$ 19,90<small>/mês</small></div>
+        <div class="pw-per">menos de R$ 0,70 por dia · cancele quando quiser</div>
+        <ul class="pw-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Análises de exames ilimitadas</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Análise de sintomas ilimitada</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Toda a família pode usar</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Acesso prioritário às novidades</li>
+        </ul>
+        <a class="btn btn-primary" target="_blank" rel="noopener" href="https://wa.me/5551999009551?text=Ol%C3%A1!%20Quero%20assinar%20o%20plano%20Ilimitado%20do%20ReadMyLabs%20%28R%24%2019%2C90%2Fm%C3%AAs%29.">Assinar o Ilimitado</a>
+      </div>
+    </div>
+    <button class="pw-skip" id="pwSkip">Agora não</button>
+    <p class="pw-note">Ativação imediata pelo WhatsApp. Em breve: pagamento com cartão e Pix direto no site.</p>
+  </div>
+</div>
+
 <script>
 const SITEKEY='6Lfj2IcrAAAAABVLFqE3bNN9zBb-RqB_9jvPsEf-';
 const ENDPOINT='analisar.php';
@@ -514,6 +580,15 @@ function rcInit(){
 // Polling até o grecaptcha estar pronto (evita corrida com o carregamento do api.js).
 (function pollRc(n){ if(rcInit()) return; if(n>50) return; setTimeout(()=>pollRc(n+1),200); })(0);
 function rcToken(id){ try{ return (window.grecaptcha&&id!==null)?grecaptcha.getResponse(id):''; }catch(e){ return ''; } }
+
+// ---------- paywall: 1 análise gratuita, depois tela de compra ----------
+const PW_KEY='rml_free_usada';
+const paywall=document.getElementById('paywall');
+function pwUsada(){try{return localStorage.getItem(PW_KEY)==='1'}catch(e){return false}}
+function pwMarcar(){try{localStorage.setItem(PW_KEY,'1')}catch(e){}}
+function pwAbrir(){paywall.classList.add('show');document.body.style.overflow='hidden'}
+function pwFechar(){paywall.classList.remove('show');document.body.style.overflow=''}
+document.getElementById('pwSkip').addEventListener('click',pwFechar);
 
 // ---------- dropzone ----------
 const fileInput=document.getElementById('fileInput');
@@ -567,6 +642,7 @@ const sumP=result.querySelector('.res-summary p');
 const BADGE={normal:['mk-good','Normal'],baixo:['mk-warn','Baixo'],alto:['mk-high','Alto'],critico:['mk-high','Crítico']};
 
 analyzeBtn.addEventListener('click',async()=>{
+  if(pwUsada()){pwAbrir();return;}
   if(!arquivoSel){alert('Selecione um PDF ou imagem do exame.');return;}
   const tok=rcToken(rcExame);
   setBtn(analyzeBtn,'Lendo o exame…',true);
@@ -583,6 +659,7 @@ analyzeBtn.addEventListener('click',async()=>{
     const d=await r.json();
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
     renderExame(d);
+    pwMarcar();
   }catch(e){
     alert(e.message||'Erro ao analisar o exame.');
   }finally{
@@ -619,6 +696,7 @@ const symBtn=document.getElementById('symBtn');
 const symResult=document.getElementById('symResult');
 const symPlaceholder=document.getElementById('symPlaceholder');
 symBtn.addEventListener('click',async()=>{
+  if(pwUsada()){pwAbrir();return;}
   const texto=(document.getElementById('symText').value||'').trim();
   if(!texto){alert('Descreva seus sintomas.');return;}
   const tok=rcToken(rcSintomas);
@@ -637,6 +715,7 @@ symBtn.addEventListener('click',async()=>{
     symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6">${esc(d.resposta||'')}</div>`;
     symResult.classList.add('show');
     symResult.scrollIntoView({behavior:'smooth',block:'nearest'});
+    pwMarcar();
   }catch(e){
     alert(e.message||'Erro ao analisar sintomas.');
   }finally{
