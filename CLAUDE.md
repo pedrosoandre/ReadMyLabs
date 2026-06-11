@@ -17,10 +17,13 @@ App médico: o usuário envia PDF/foto de exame laboratorial (ou descreve sintom
 4. Texto do exame extraído no navegador (PDF.js/Tesseract), não no servidor.
 
 ## Proteções contra abuso (verificadas em produção)
-- reCAPTCHA obrigatório; o toggle `REQUIRE_RECAPTCHA=0` **não** desliga (PHP `'0' ?: '1'` → falha fechado; usar `off` em dev local).
+- reCAPTCHA v2 checkbox obrigatório; o toggle `REQUIRE_RECAPTCHA=0` **não** desliga (PHP `'0' ?: '1'` → falha fechado; usar `off` em dev local).
 - Rate limit: 3 análises/dia por IP (arquivos em `limite_ip/`, hash sha256 do IP, independe do banco).
 - Contador só incrementa **após** captcha válido; Claude só é chamado após captcha + limite + DB OK.
 - `.htaccess` bloqueia acesso web a `.env` e `loads_env.php` (403) e seta CSP.
+- **Prompt injection (sintomas):** campos `$sintomas/$duracao/$intensidade` envolvidos em tags XML no prompt; system prompt instrui o Claude a ignorar comandos nesses campos.
+- **`_custo` (tokens/cache)** só aparece no response com `APP_DEBUG=true` no `.env` — nunca exposto em produção.
+- `logRml()` ativo: loga captcha falho e rate limit atingido no error_log do servidor.
 
 ## Paywall (frontend)
 - 1 análise gratuita por navegador (`localStorage: rml_free_usada`), marcada só após sucesso.
