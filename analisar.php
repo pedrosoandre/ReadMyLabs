@@ -37,6 +37,12 @@ function sanitizarInput(string $texto, int $maxLen = 4000): string {
     return $texto;
 }
 
+function logRml(string $level, string $msg, array $ctx = []): void {
+    $entry = ['ts' => gmdate('c'), 'level' => $level, 'msg' => $msg];
+    if ($ctx) $entry['ctx'] = $ctx;
+    error_log(json_encode($entry, JSON_UNESCAPED_UNICODE));
+}
+
 function verificarRecaptcha(string $token, string $secretKey): bool {
     $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
     curl_setopt_array($ch, [
@@ -72,7 +78,7 @@ function extrairTextoPDF(string $arquivoTmp): string {
         }
     }
     if (function_exists('shell_exec')) {
-        $out = @shell_exec('pdftotext ' . escapeshellarg($arquivoTmp) . ' - 2>/dev/null');
+        $out = shell_exec('timeout 30 pdftotext ' . escapeshellarg($arquivoTmp) . ' - 2>/dev/null');
         if ($out !== null && trim($out) !== '') {
             return $out;
         }
@@ -87,18 +93,30 @@ $ipHash    = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'cli');
 $hoje      = date('Y-m-d');
 $limiteDir = __DIR__ . '/limite_ip';
 if (!is_dir($limiteDir)) {
-    @mkdir($limiteDir, 0700, true);
+    if (!mkdir($limiteDir, 0700, true) && !is_dir($limiteDir)) {
+        logRml('error', 'rate limit: não foi possível criar diretório', ['dir' => $limiteDir]);
+    }
 }
 $limiteArq = "$limiteDir/$ipHash.txt";
 $limiteMax = (int) (getenv('LIMITE_DIARIO') ?: 3);
-$contagem  = ['data' => $hoje, 'contagem' => 0];
-if (is_file($limiteArq)) {
-    $d = json_decode((string) file_get_contents($limiteArq), true);
-    if ($d && ($d['data'] ?? '') === $hoje) {
+
+$fpLimite = fopen($limiteArq, 'c+');
+if ($fpLimite === false) {
+    logRml('error', 'rate limit: fopen falhou', ['arq' => $limiteArq]);
+    responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
+}
+flock($fpLimite, LOCK_EX);
+$raw = stream_get_contents($fpLimite);
+$contagem = ['data' => $hoje, 'contagem' => 0];
+if ($raw !== '') {
+    $d = json_decode($raw, true);
+    if (is_array($d) && ($d['data'] ?? '') === $hoje) {
         $contagem = $d;
     }
 }
 if ($contagem['contagem'] >= $limiteMax) {
+    flock($fpLimite, LOCK_UN);
+    fclose($fpLimite);
     responder([
         'ok'              => false,
         'limite_atingido' => true,
@@ -118,9 +136,10 @@ if (!in_array($tipo, ['exame', 'sintomas'], true)) {
     responder(['ok' => false, 'resposta' => 'Tipo de análise inválido.'], 400);
 }
 
-// reCAPTCHA — desativável em dev com REQUIRE_RECAPTCHA=0
-$secretKey = getenv('RECAPTCHA_SECRET');
-$exigeCaptcha = (getenv('REQUIRE_RECAPTCHA') ?: '1') === '1';
+// reCAPTCHA — desativável em dev com REQUIRE_RECAPTCHA=0, off ou false
+$secretKey    = getenv('RECAPTCHA_SECRET');
+$reqCaptcha   = getenv('REQUIRE_RECAPTCHA');
+$exigeCaptcha = ($reqCaptcha !== 'off' && $reqCaptcha !== '0' && $reqCaptcha !== 'false');
 if ($exigeCaptcha) {
     $token = $_POST['g-recaptcha-response'] ?? '';
     if (!$token || !$secretKey || !verificarRecaptcha($token, $secretKey)) {
@@ -128,10 +147,13 @@ if ($exigeCaptcha) {
     }
 }
 
-// Consome 1 do limite só após passar nas validações
-$contagem['data'] = $hoje;
+// Consome 1 do limite só após passar nas validações (ainda dentro do lock)
 $contagem['contagem']++;
-@file_put_contents($limiteArq, json_encode($contagem), LOCK_EX);
+ftruncate($fpLimite, 0);
+rewind($fpLimite);
+fwrite($fpLimite, json_encode($contagem));
+flock($fpLimite, LOCK_UN);
+fclose($fpLimite);
 
 // ---------------------------------------------------------------
 // Roteamento
@@ -162,6 +184,12 @@ function analisarExame(PDO $db, string $ipHash): void {
     // 2) Ou um PDF enviado para extração no servidor
     elseif (!empty($_FILES['arquivo']['tmp_name']) && is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
         $nomeArquivo = sanitizarInput($_FILES['arquivo']['name'] ?? 'exame.pdf', 255);
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = $finfo ? finfo_file($finfo, $_FILES['arquivo']['tmp_name']) : '';
+        if ($finfo) finfo_close($finfo);
+        if (!in_array($mime, ['application/pdf', 'image/jpeg', 'image/png'], true)) {
+            responder(['ok' => false, 'resposta' => 'Formato não suportado. Envie PDF, JPG ou PNG.'], 422);
+        }
         $texto = extrairTextoPDF($_FILES['arquivo']['tmp_name']);
     }
 

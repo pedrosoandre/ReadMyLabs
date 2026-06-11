@@ -655,13 +655,18 @@ analyzeBtn.addEventListener('click',async()=>{
     fd.append('conteudo_ocr',texto);
     fd.append('nome_arquivo',arquivoSel.name);
     fd.append('g-recaptcha-response',tok);
-    const r=await fetch(ENDPOINT,{method:'POST',body:fd});
-    const d=await r.json();
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),90000);
+    let d;
+    try{
+      const r=await fetch(ENDPOINT,{method:'POST',body:fd,signal:ctrl.signal});
+      d=await r.json();
+    }finally{clearTimeout(timer);}
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
     renderExame(d);
     pwMarcar();
   }catch(e){
-    alert(e.message||'Erro ao analisar o exame.');
+    alert(e.name==='AbortError'?'A análise demorou muito. Tente novamente.':(e.message||'Erro ao analisar o exame.'));
   }finally{
     setBtn(analyzeBtn,'Analisar novamente',false);
     if(window.grecaptcha&&rcExame!==null){try{grecaptcha.reset(rcExame);}catch(_){}}
@@ -708,8 +713,13 @@ symBtn.addEventListener('click',async()=>{
     fd.append('duracao',document.getElementById('symDur').value||'');
     fd.append('intensidade',document.getElementById('symInt').value||'');
     fd.append('g-recaptcha-response',tok);
-    const r=await fetch(ENDPOINT,{method:'POST',body:fd});
-    const d=await r.json();
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),90000);
+    let d;
+    try{
+      const r=await fetch(ENDPOINT,{method:'POST',body:fd,signal:ctrl.signal});
+      d=await r.json();
+    }finally{clearTimeout(timer);}
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
     if(symPlaceholder) symPlaceholder.style.display='none';
     symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6">${esc(d.resposta||'')}</div>`;
@@ -717,7 +727,7 @@ symBtn.addEventListener('click',async()=>{
     symResult.scrollIntoView({behavior:'smooth',block:'nearest'});
     pwMarcar();
   }catch(e){
-    alert(e.message||'Erro ao analisar sintomas.');
+    alert(e.name==='AbortError'?'A análise demorou muito. Tente novamente.':(e.message||'Erro ao analisar sintomas.'));
   }finally{
     setBtn(symBtn,'Analisar novamente',false);
     if(window.grecaptcha&&rcSintomas!==null){try{grecaptcha.reset(rcSintomas);}catch(_){}}

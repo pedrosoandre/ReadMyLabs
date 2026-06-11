@@ -65,6 +65,10 @@ function chamarClaude(string $prompt, $system = '', string $model = MODELO_EXPLI
     }
 
     $r = json_decode($resposta, true);
+    if (!is_array($r)) {
+        error_log('chamarClaude: resposta JSON inválida');
+        return ['texto' => '', 'tokens_in' => 0, 'tokens_out' => 0, 'cache_read' => 0, 'ok' => false];
+    }
     return [
         'texto'      => $r['content'][0]['text'] ?? '',
         'tokens_in'  => $r['usage']['input_tokens'] ?? 0,
@@ -192,11 +196,16 @@ function explicarMarcadores(array $marcadores, ?string $sexo, ?int $idade, PDO $
 
 /** Extrai o primeiro objeto JSON de um texto (tolerante a cercas ```). */
 function extrairJSON(string $texto): array {
+    $texto = trim($texto);
+    $direct = json_decode($texto, true);
+    if (is_array($direct)) return $direct;
+    if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $texto, $m)) {
+        $dados = json_decode($m[1], true);
+        if (is_array($dados)) return $dados;
+    }
     if (preg_match('/\{.*\}/s', $texto, $m)) {
         $dados = json_decode($m[0], true);
-        if (is_array($dados)) {
-            return $dados;
-        }
+        if (is_array($dados)) return $dados;
     }
     return [];
 }
