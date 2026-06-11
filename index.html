@@ -219,12 +219,40 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
   .steps,.exam-grid{grid-template-columns:1fr 1fr}
   .nav-links{display:none}
   .partner-logos{grid-template-columns:1fr 1fr}
+  header{padding:56px 0 32px}
+  section{padding:64px 0}
+  .final{padding:72px 0}
+  .foot-grid{grid-template-columns:1fr 1fr;gap:24px}
+  .b2b-card{padding:36px}
+  .b2b-grid h2{font-size:clamp(26px,5vw,38px)}
 }
 @media(max-width:620px){
-  .wrap,.nav-in{padding-left:20px;padding-right:20px}
+  .wrap,.nav-in{padding-left:18px;padding-right:18px}
   .steps,.exam-grid,.two-col{grid-template-columns:1fr}
-  .hero-stats{gap:26px}
-  .b2b-card,.sym-form,.upload-card{padding:24px}
+  .hero-stats{gap:20px;flex-wrap:wrap}
+  .b2b-card,.sym-form,.upload-card{padding:22px}
+  header{padding:40px 0 26px}
+  section{padding:48px 0}
+  .final{padding:52px 0}
+  .sec-head{margin-bottom:36px}
+  .sec-head p{font-size:16px}
+  .foot-grid{grid-template-columns:1fr;gap:20px}
+  .foot-bot{flex-direction:column;align-items:flex-start;gap:6px}
+  .nav-cta .btn-ghost{display:none}
+  .sym-placeholder{display:none}
+  .aurora-bg::before{width:340px;height:340px;left:-120px}
+  .aurora-bg::after{width:280px;height:280px;right:-100px}
+  .aurora-bg .blob3{width:260px;height:260px}
+}
+@media(max-width:400px){
+  .wrap,.nav-in{padding-left:14px;padding-right:14px}
+  .hero-stats .num{font-size:24px}
+  .hero-stats .lbl{font-size:12px}
+  .btn-lg{padding:13px 18px;font-size:15px}
+  .q-head h4{font-size:16px}
+  .b2b-grid h2{font-size:22px}
+  .upload-card,.sym-form,.b2b-card{padding:18px}
+  .foot-grid{gap:16px}
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
