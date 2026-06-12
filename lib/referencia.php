@@ -178,6 +178,189 @@ function classificarExame(string $texto, ?string $sexo, ?int $idade, PDO $db): a
 }
 
 /**
+ * Identifica padrões clínicos nos marcadores usando regras validadas por diretrizes.
+ * Zero token: o PHP avalia as condições; Claude só redige a síntese posterior.
+ *
+ * @param  array $marcadores saída de classificarExame()
+ * @param  PDO   $db
+ * @return array lista de linhas da tabela padroes_clinicos que se aplicam
+ */
+function identificarPadroes(array $marcadores, PDO $db): array {
+    // Indexa por nome normalizado para lookup O(1)
+    $m = [];
+    foreach ($marcadores as $mk) {
+        $m[mb_strtolower(trim($mk['nome']))] = $mk;
+    }
+
+    $baixo  = fn(string $n): bool  => ($m[mb_strtolower($n)]['status'] ?? '') === 'baixo';
+    $alto   = fn(string $n): bool  => ($m[mb_strtolower($n)]['status'] ?? '') === 'alto';
+    $val    = fn(string $n): ?float => isset($m[mb_strtolower($n)]) ? (float)$m[mb_strtolower($n)]['valor'] : null;
+    $refmax = fn(string $n): float  => (float)($m[mb_strtolower($n)]['ref_max'] ?? 0);
+
+    $codigos = [];
+
+    // ─── LEUCÓCITOS ───────────────────────────────────────────────
+    if ($baixo('Leucócitos')) {
+        $linfo = $val('Linfócitos');
+        $codigos[] = ($linfo !== null && $linfo > 35.0)
+            ? 'leucopenia_linfocitose'
+            : 'leucopenia';
+    } elseif ($alto('Leucócitos')) {
+        $leuVal = $val('Leucócitos');
+        if ($leuVal !== null && $leuVal > 30000) {
+            $codigos[] = 'leucocitose_grave';
+        } elseif ($val('Neutrófilos') !== null && $val('Neutrófilos') > 70.0) {
+            $codigos[] = 'leucocitose_neutrofilia';
+        } else {
+            $codigos[] = 'leucocitose';
+        }
+    }
+
+    if ($alto('Eosinófilos'))                       $codigos[] = 'eosinofilia';
+    if (!$baixo('Leucócitos') && $alto('Linfócitos')) $codigos[] = 'linfocitose';
+
+    // ─── SÉRIE VERMELHA ───────────────────────────────────────────
+    $temHb = isset($m['hemoglobina']);
+    if ($baixo('Hemoglobina')) {
+        $vcmVal = $val('VCM');
+        if ($vcmVal !== null && $vcmVal < 80.0) {
+            $codigos[] = $alto('RDW') ? 'anemia_ferropriva_rdw' : 'anemia_microcitica';
+        } elseif ($vcmVal !== null && $vcmVal > 100.0) {
+            $codigos[] = 'anemia_macrocitica';
+        } else {
+            $codigos[] = 'anemia_normocitica';
+        }
+    } elseif ($alto('Hemoglobina') || $alto('Hematócrito')) {
+        $codigos[] = 'policitemia';
+    }
+
+    if ($temHb && !$baixo('Hemoglobina') && $baixo('VCM'))         $codigos[] = 'microcitose_sem_anemia';
+    if ($temHb && !$baixo('Hemoglobina') && !$baixo('VCM') && $alto('RDW'))
+        $codigos[] = 'anisocitose_sem_anemia';
+
+    // ─── PLAQUETAS ────────────────────────────────────────────────
+    if ($baixo('Plaquetas')) {
+        $pltVal = $val('Plaquetas');
+        $codigos[] = ($pltVal !== null && $pltVal < 75000) ? 'trombocitopenia_grave' : 'trombocitopenia_leve';
+    } elseif ($alto('Plaquetas')) {
+        $codigos[] = 'trombocitose';
+    }
+
+    // Pancitopenia sobrepõe leucopenia + anemia + trombocitopenia
+    if ($baixo('Leucócitos') && $baixo('Hemoglobina') && $baixo('Plaquetas')) {
+        $codigos = array_values(array_filter($codigos, fn($c) => !in_array($c, [
+            'leucopenia', 'leucopenia_linfocitose', 'anemia_normocitica',
+            'anemia_microcitica', 'anemia_ferropriva_rdw', 'trombocitopenia_leve', 'trombocitopenia_grave',
+        ])));
+        $codigos[] = 'pancitopenia';
+    }
+
+    // ─── GLICEMIA ─────────────────────────────────────────────────
+    $gli = $val('Glicose');
+    if ($gli !== null) {
+        if ($gli >= 126)       $codigos[] = 'diabetes_sugestivo';
+        elseif ($gli >= 100)   $codigos[] = 'pre_diabetes';
+    }
+    $a1c = $val('Hemoglobina glicada');
+    if ($a1c !== null) {
+        if ($a1c > 6.4)        $codigos[] = 'diabetes_hba1c';
+        elseif ($a1c > 5.6)    $codigos[] = 'pre_diabetes_hba1c';
+    }
+
+    // ─── LIPÍDICO ─────────────────────────────────────────────────
+    $ldlAlto = $alto('Colesterol LDL');
+    $tgAlto  = $alto('Triglicerídeos');
+    if ($ldlAlto && $tgAlto) {
+        $codigos[] = 'dislipidemia_mista';
+    } else {
+        if ($ldlAlto) $codigos[] = 'dislipidemia_ldl';
+        if ($tgAlto)  $codigos[] = 'hipertrigliceridemia';
+    }
+    if ($baixo('Colesterol HDL')) $codigos[] = 'hdl_baixo';
+
+    // ─── TIREOIDE ─────────────────────────────────────────────────
+    if ($alto('TSH')) {
+        $codigos[] = $baixo('T4 livre') ? 'hipotireoidismo_primario' : 'hipotireoidismo_subclínico';
+    } elseif ($baixo('TSH')) {
+        $codigos[] = $alto('T4 livre') ? 'hipertireoidismo' : 'tsh_suprimido';
+    }
+
+    // ─── FUNÇÃO RENAL ─────────────────────────────────────────────
+    if ($alto('Creatinina')) {
+        $codigos[] = $alto('Ureia') ? 'disfuncao_renal' : 'creatinina_elevada';
+    }
+    if ($alto('Ácido úrico')) $codigos[] = 'hiperuricemia';
+
+    // ─── FUNÇÃO HEPÁTICA ──────────────────────────────────────────
+    if ($alto('TGO') || $alto('TGP')) {
+        $tgoVal = $val('TGO');
+        $tgpVal = $val('TGP');
+        $grave  = ($tgoVal !== null && $tgoVal > 3 * max($refmax('TGO'), 1))
+               || ($tgpVal !== null && $tgpVal > 3 * max($refmax('TGP'), 1));
+        $codigos[] = $grave ? 'hepatite_enzimas_grave' : 'hepatite_enzimas';
+    }
+
+    // ─── VITAMINAS ────────────────────────────────────────────────
+    if ($baixo('Vitamina D'))    $codigos[] = 'hipovitaminose_d';
+    if ($baixo('Vitamina B12'))  $codigos[] = 'deficiencia_b12';
+    if ($baixo('Ferro'))         $codigos[] = 'ferropenia_serica';
+    if ($baixo('Ferritina'))     $codigos[] = 'ferropenia_ferritina';
+    if ($baixo('Ácido fólico'))  $codigos[] = 'deficiencia_folato';
+
+    // ─── ELETRÓLITOS ──────────────────────────────────────────────
+    if ($baixo('Sódio')) {
+        $naVal = $val('Sódio');
+        $codigos[] = ($naVal !== null && $naVal < 125) ? 'hiponatremia' : 'hiponatremia';
+    }
+    if ($alto('Sódio'))   $codigos[] = 'hipernatremia';
+    if ($baixo('Potássio')) {
+        $kVal = $val('Potássio');
+        $codigos[] = ($kVal !== null && $kVal < 3.0) ? 'hipocalemia_grave' : 'hipocalemia';
+    }
+    if ($alto('Potássio')) {
+        $kVal = $val('Potássio');
+        $codigos[] = ($kVal !== null && $kVal > 6.0) ? 'hipercalemia_grave' : 'hipercalemia';
+    }
+
+    if (!$codigos) {
+        return [];
+    }
+
+    // Busca os dados textuais da tabela para os códigos encontrados
+    $placeholders = implode(',', array_fill(0, count($codigos), '?'));
+    $stmt = $db->prepare(
+        "SELECT codigo, titulo, interpretacao, urgencia, acao, fonte
+         FROM padroes_clinicos WHERE codigo IN ($placeholders) AND ativo = 1"
+    );
+    $stmt->execute(array_values($codigos));
+
+    $byCode = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $byCode[$row['codigo']] = $row;
+    }
+
+    // Devolve na ordem de prioridade (mesma ordem em que foram identificados)
+    $resultado = [];
+    foreach ($codigos as $codigo) {
+        if (isset($byCode[$codigo])) {
+            $resultado[] = $byCode[$codigo];
+        }
+    }
+    return $resultado;
+}
+
+/** Retorna a urgência máxima entre todos os padrões: verde < amarelo < vermelho. */
+function urgenciaMax(array $padroes): string {
+    $nivel = ['verde' => 0, 'amarelo' => 1, 'vermelho' => 2];
+    $max   = 'verde';
+    foreach ($padroes as $p) {
+        $u = $p['urgencia'] ?? 'verde';
+        if (($nivel[$u] ?? 0) > ($nivel[$max] ?? 0)) $max = $u;
+    }
+    return $max;
+}
+
+/**
  * Tenta inferir sexo e idade a partir do texto do exame (opcional).
  * @return array{sexo: ?string, idade: ?int}
  */

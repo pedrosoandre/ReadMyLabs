@@ -109,6 +109,28 @@ h1 .grad{background:linear-gradient(110deg,var(--indigo),var(--violet) 50%,var(-
 .res-ring span{position:absolute;inset:5px;border-radius:50%;background:var(--bg-2);display:grid;place-items:center;font-size:13px}
 .res-summary h4{font-family:"Space Grotesk";font-size:17px;font-weight:600}
 .res-summary p{font-size:14px;color:var(--muted);margin-top:2px}
+/* ── Conclusão clínica ─────────────────────────── */
+.conclusao{margin:16px 0;border-radius:16px;border:1px solid var(--stroke);background:var(--panel);overflow:hidden}
+.conclusao-header{display:flex;align-items:center;gap:10px;padding:16px 18px 10px}
+.urg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.urg-verde  .urg-dot{background:var(--good);box-shadow:0 0 8px var(--good)}
+.urg-amarelo .urg-dot{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.urg-vermelho .urg-dot{background:var(--high);box-shadow:0 0 8px var(--high)}
+.conclusao-urg{font-family:"Space Grotesk";font-weight:600;font-size:14.5px}
+.urg-verde   .conclusao-urg{color:var(--good)}
+.urg-amarelo .conclusao-urg{color:var(--warn)}
+.urg-vermelho .conclusao-urg{color:var(--high)}
+.conclusao-body{padding:0 18px 16px}
+.conclusao-texto{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:14px}
+.conclusao-padroes{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.padrao-item{background:rgba(255,255,255,.03);border-radius:10px;padding:12px 14px;border:1px solid var(--stroke)}
+.padrao-titulo{font-weight:600;font-size:13px;margin-bottom:4px;color:var(--text)}
+.padrao-interp{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:6px}
+.padrao-acao{font-size:12.5px;color:var(--cyan);margin-bottom:4px}
+.padrao-fonte{font-size:11px;color:var(--faint);font-family:"JetBrains Mono"}
+.conclusao-toggle{background:none;border:none;color:var(--indigo);font-size:13px;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:5px;margin-bottom:12px}
+.conclusao-toggle:hover{color:var(--violet)}
+.conclusao-aviso{font-size:11.5px;color:var(--faint);border-top:1px solid var(--stroke);padding-top:10px;margin-top:4px}
 .markers{margin-top:14px;display:flex;flex-direction:column;gap:9px}
 .marker{display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:13px;background:var(--panel);border:1px solid var(--stroke);opacity:0;transform:translateY(8px);animation:rise .5s var(--ease) forwards}
 .marker .mk-name{font-weight:600;font-size:14.5px;flex:1}
@@ -356,6 +378,7 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
                 </div>
               </div>
             </div>
+            <div id="conclusao" style="display:none"></div>
             <div class="markers" id="markers"></div>
             <div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> Esta é uma interpretação informativa gerada por IA a partir de um exemplo. Sempre leve seus exames a um profissional de saúde.</div>
           </div>
@@ -681,6 +704,41 @@ analyzeBtn.addEventListener('click',async()=>{
 });
 
 function renderExame(d){
+  // ── conclusão clínica ──────────────────────────────────────────
+  const conclusaoEl=document.getElementById('conclusao');
+  const c=d.conclusao;
+  if(c&&c.padroes&&c.padroes.length){
+    const urgClass={verde:'urg-verde',amarelo:'urg-amarelo',vermelho:'urg-vermelho'}[c.urgencia]||'urg-verde';
+    const urgLabels={verde:'🟢 Sem alterações relevantes',amarelo:'🟡 Atenção — acompanhamento recomendado',vermelho:'🔴 Investigação urgente recomendada'};
+    const padroesId='padroes-list-'+Date.now();
+    const padroesHtml=c.padroes.map(p=>`
+      <div class="padrao-item">
+        <div class="padrao-titulo">${esc(p.titulo)}</div>
+        <div class="padrao-interp">${esc(p.interpretacao)}</div>
+        ${p.acao?`<div class="padrao-acao">→ ${esc(p.acao)}</div>`:''}
+        <div class="padrao-fonte">Fonte: ${esc(p.fonte)}</div>
+      </div>`).join('');
+    conclusaoEl.innerHTML=`
+      <div class="conclusao ${urgClass}">
+        <div class="conclusao-header">
+          <div class="urg-dot"></div>
+          <span class="conclusao-urg">${urgLabels[c.urgencia]||urgLabels.verde}</span>
+        </div>
+        <div class="conclusao-body">
+          ${c.texto?`<div class="conclusao-texto">${esc(c.texto)}</div>`:''}
+          <button class="conclusao-toggle" onclick="togglePadroes('${padroesId}',this)">
+            ▸ Ver ${c.padroes.length} padrão${c.padroes.length>1?'s identificados':' identificado'} com fontes
+          </button>
+          <div id="${padroesId}" class="conclusao-padroes" style="display:none">${padroesHtml}</div>
+          <div class="conclusao-aviso">Padrões baseados em diretrizes clínicas (Harrison's, SBAC, SBD, SBC, SBEM, KDIGO). Não substitui avaliação médica.</div>
+        </div>
+      </div>`;
+    conclusaoEl.style.display='';
+  } else {
+    conclusaoEl.innerHTML='';
+    conclusaoEl.style.display='none';
+  }
+  // ── lista de marcadores ────────────────────────────────────────
   markers.innerHTML='';
   (d.marcadores||[]).forEach((m,i)=>{
     const [cls,txt]=BADGE[m.status]||BADGE.normal;
@@ -701,6 +759,12 @@ function renderExame(d){
   if(sumP) sumP.textContent=alt>0?`${alt} ponto(s) merecem acompanhamento. Veja abaixo.`:'Todos os marcadores reconhecidos estão na faixa de referência.';
   result.classList.add('show');
   result.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function togglePadroes(id,btn){
+  const el=document.getElementById(id);
+  const open=el.style.display==='none';
+  el.style.display=open?'':'none';
+  btn.textContent=open?'▾ Ocultar padrões identificados':'▸ Ver '+(el.children.length)+' padrão'+(el.children.length>1?'s identificados':' identificado')+' com fontes';
 }
 
 // ---------- sintomas ----------

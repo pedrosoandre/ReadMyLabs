@@ -246,6 +246,24 @@ function analisarExame(PDO $db, string $ipHash): void {
     }
     unset($m);
 
+    // Interpretação clínica: identifica padrões localmente (zero token)
+    // e pede ao Claude apenas que redija a síntese em linguagem leiga
+    $padroes   = identificarPadroes($marcadores, $db);
+    $conclusao = null;
+    if ($padroes) {
+        $rc = redigirConclusao($padroes, $perfil['sexo'], $perfil['idade'], $db);
+        $conclusao = [
+            'urgencia' => urgenciaMax($padroes),
+            'texto'    => $rc['texto'],
+            'padroes'  => array_map(fn($p) => [
+                'titulo'        => $p['titulo'],
+                'interpretacao' => $p['interpretacao'],
+                'acao'          => $p['acao'],
+                'fonte'         => $p['fonte'],
+            ], $padroes),
+        ];
+    }
+
     $normais   = count(array_filter($marcadores, fn($x) => $x['status'] === 'normal'));
     $alterados = count($marcadores) - $normais;
 
@@ -254,6 +272,7 @@ function analisarExame(PDO $db, string $ipHash): void {
         'tipo'       => 'exame',
         'arquivo'    => $nomeArquivo,
         'resumo'     => ['total' => count($marcadores), 'normais' => $normais, 'alterados' => $alterados],
+        'conclusao'  => $conclusao,
         'marcadores' => $marcadores,
         'nota'       => 'Interpretação informativa gerada por IA. Não substitui avaliação de um profissional de saúde.',
     ];
