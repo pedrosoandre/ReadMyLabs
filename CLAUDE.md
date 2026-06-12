@@ -5,7 +5,7 @@ App médico: o usuário envia PDF/foto de exame laboratorial (ou descreve sintom
 **Domínio real: `readmylabs.com.br`** (sem "y" depois do "read" — a pasta local "readymylabs" engana).
 
 ## Stack
-- Frontend: `index.html` único (design "Aurora", dark, tudo inline — CSS+JS no mesmo arquivo). PDF.js + Tesseract.js extraem o texto do exame **no navegador** (economiza token e upload).
+- Frontend: `index.html` único (design "Aurora", dark, tudo inline — CSS+JS no mesmo arquivo). PDF.js extrai texto de PDFs digitais no navegador; PDFs escaneados e imagens são rasterizados e enviados como base64 para o backend (Claude Vision).
 - Backend: PHP puro (sem framework) na Hostinger compartilhada. Entrada única: `analisar.php`.
 - Banco: MySQL (`u854646013_examesip`). Schema em `sql/schema.sql`, seed com 46 marcadores em `sql/seed_marcadores.sql`.
 - IA: API Anthropic direto via cURL (`lib/claude.php`), modelo `claude-opus-4-8`.
@@ -14,7 +14,13 @@ App médico: o usuário envia PDF/foto de exame laboratorial (ou descreve sintom
 1. `lib/referencia.php` classifica os marcadores **localmente** contra a tabela `marcadores_referencia` — zero token.
 2. Só marcadores **alterados** vão ao Claude, em **uma** chamada em lote.
 3. `cache_explicacoes` (MySQL): explicação por (marcador, status, sexo, faixa etária) — hit = zero token.
-4. Texto do exame extraído no navegador (PDF.js/Tesseract), não no servidor.
+4. **PDFs digitais**: texto extraído no navegador pelo PDF.js, não vai ao servidor — zero token.
+5. **PDFs escaneados e imagens**: `extrairTexto()` rasteriza para JPEG (canvas, scale 2, qualidade 0.85) e envia `imagem_base64` (JSON array, máx 5 páginas) ao backend → `extrairTextoVision()` em `lib/claude.php` chama Claude Vision → texto retornado entra na pipeline normal de classificação. Tesseract.js foi removido.
+
+## OCR via Claude Vision
+- `chamarClaude()` em `lib/claude.php` aceita `string|array` no parâmetro `$prompt` (suporta blocos de conteúdo Vision).
+- `extrairTextoVision(array $imagens): string` — recebe array `['data'=>base64,'mime'=>'image/jpeg'|'image/png']`, retorna texto formatado `"Marcador: valor unidade"` por linha para o regex de `classificarExame()`.
+- Custo Vision: ~1.000–2.000 tokens/página (Opus). Compensa vs. Tesseract (30-60s OCR ruim que falhava nos regex).
 
 ## Proteções contra abuso (verificadas em produção)
 - reCAPTCHA v2 checkbox obrigatório; o toggle `REQUIRE_RECAPTCHA=0` **não** desliga (PHP `'0' ?: '1'` → falha fechado; usar `off` em dev local).
