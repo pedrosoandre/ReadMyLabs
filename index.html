@@ -284,7 +284,6 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -603,32 +602,35 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');co
 fileInput.addEventListener('change',()=>{const f=fileInput.files[0];if(f){arquivoSel=f;showFile(f.name);}});
 function showFile(n){dzName.textContent=n;dzFile.classList.add('show');}
 
-// ---------- extração de texto no navegador (economiza token) ----------
+// ---------- extração de texto no navegador (PDFs digitais) ou imagens para Vision ----------
 function fileToDataURL(file){return new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(file);});}
+// Retorna {tipo:'texto',dados:string} para PDFs digitais
+// ou     {tipo:'imagens',dados:[{data,mime}]} para PDFs escaneados/imagens
 async function extrairTexto(file){
   if(file.type==='application/pdf'&&window.pdfjsLib){
     try{
       const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
       let t='';
       for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();t+=c.items.map(x=>x.str).join(' ')+'\n';}
-      if(t.replace(/\s/g,'').length>20) return t;
-      // PDF escaneado: rasteriza e roda OCR
-      let ocr='';
-      for(let i=1;i<=pdf.numPages;i++){
+      if(t.replace(/\s/g,'').length>20) return {tipo:'texto',dados:t};
+      // PDF escaneado: rasteriza páginas para Vision (máx 5)
+      const imagens=[];
+      const nPags=Math.min(pdf.numPages,5);
+      for(let i=1;i<=nPags;i++){
         const p=await pdf.getPage(i);const vp=p.getViewport({scale:2});
         const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
         await p.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
-        const {data:{text}}=await Tesseract.recognize(cv.toDataURL('image/png'),'por');
-        ocr+=text+'\n';
+        const dataUrl=cv.toDataURL('image/jpeg',0.85);
+        imagens.push({data:dataUrl.split(',')[1],mime:'image/jpeg'});
       }
-      return ocr;
+      if(imagens.length) return {tipo:'imagens',dados:imagens};
     }catch(e){console.warn('pdfjs falhou',e);}
   }
-  if(file.type.startsWith('image/')&&window.Tesseract){
-    const {data:{text}}=await Tesseract.recognize(await fileToDataURL(file),'por');
-    return text;
+  if(file.type.startsWith('image/')){
+    const dataUrl=await fileToDataURL(file);
+    return {tipo:'imagens',dados:[{data:dataUrl.split(',')[1],mime:file.type.startsWith('image/png')?'image/png':'image/jpeg'}]};
   }
-  return '';
+  return null;
 }
 
 // ---------- exame ----------
@@ -647,14 +649,18 @@ analyzeBtn.addEventListener('click',async()=>{
   const tok=rcToken(rcExame);
   setBtn(analyzeBtn,'Lendo o exame…',true);
   try{
-    const texto=await extrairTexto(arquivoSel);
-    if(!texto||texto.replace(/\s/g,'').length<10){throw new Error('Não consegui ler o conteúdo do arquivo. Tente um PDF legível ou foto nítida.');}
-    setBtn(analyzeBtn,'Analisando…',true);
+    const resultado=await extrairTexto(arquivoSel);
+    if(!resultado){throw new Error('Não foi possível ler o arquivo. Tente um PDF digital ou foto nítida.');}
+    setBtn(analyzeBtn,resultado.tipo==='imagens'?'Interpretando imagem…':'Analisando…',true);
     const fd=new FormData();
     fd.append('tipo','exame');
-    fd.append('conteudo_ocr',texto);
     fd.append('nome_arquivo',arquivoSel.name);
     fd.append('g-recaptcha-response',tok);
+    if(resultado.tipo==='texto'){
+      fd.append('conteudo_ocr',resultado.dados);
+    } else {
+      fd.append('imagem_base64',JSON.stringify(resultado.dados));
+    }
     const ctrl=new AbortController();
     const timer=setTimeout(()=>ctrl.abort(),90000);
     let d;

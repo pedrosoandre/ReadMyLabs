@@ -13,10 +13,11 @@ const ANTHROPIC_URL     = 'https://api.anthropic.com/v1/messages';
 
 /**
  * Chamada de baixo nível ao Claude.
+ * @param string|array $prompt  string ou array de blocos de conteúdo (p/ Vision)
  * @param array|string $system  string simples ou array de blocos (p/ cache_control)
  * @return array{texto:string, tokens_in:int, tokens_out:int, cache_read:int, ok:bool}
  */
-function chamarClaude(string $prompt, $system = '', string $model = MODELO_EXPLICACAO, int $maxTokens = 2000): array {
+function chamarClaude(string|array $prompt, $system = '', string $model = MODELO_EXPLICACAO, int $maxTokens = 2000): array {
     $apiKey = getenv('ANTHROPIC_API_KEY');
     if (!$apiKey) {
         error_log('chamarClaude: ANTHROPIC_API_KEY ausente');
@@ -192,6 +193,37 @@ function explicarMarcadores(array $marcadores, ?string $sexo, ?int $idade, PDO $
         'tokens_out'  => $tokensOut,
         'cache_hits'  => $cacheHits,
     ];
+}
+
+/**
+ * Envia imagens de exame ao Claude Vision e retorna o texto extraído,
+ * formatado para ser processado pela pipeline de classificarExame().
+ *
+ * @param array $imagens lista de ['data' => base64, 'mime' => 'image/jpeg'|'image/png']
+ */
+function extrairTextoVision(array $imagens): string {
+    $content = [];
+    foreach ($imagens as $img) {
+        $mime = in_array($img['mime'] ?? '', ['image/jpeg', 'image/png'], true)
+            ? $img['mime'] : 'image/jpeg';
+        $content[] = [
+            'type'   => 'image',
+            'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => $img['data']],
+        ];
+    }
+    $content[] = [
+        'type' => 'text',
+        'text' => 'Extraia todo o texto deste exame laboratorial. Para cada marcador, '
+            . 'escreva uma linha no formato: "Nome do marcador: valor unidade". '
+            . 'Mantenha os valores numéricos exatos como aparecem na imagem. '
+            . 'Retorne apenas o texto extraído, sem comentários ou formatação extra.',
+    ];
+
+    $r = chamarClaude($content, '', MODELO_EXPLICACAO, 2000);
+    if (!$r['ok']) {
+        error_log('extrairTextoVision: falhou — ' . ($r['texto'] ?: 'sem detalhe'));
+    }
+    return $r['texto'];
 }
 
 /** Extrai o primeiro objeto JSON de um texto (tolerante a cercas ```). */

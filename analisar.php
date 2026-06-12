@@ -179,11 +179,30 @@ function analisarExame(PDO $db, string $ipHash): void {
     $texto       = '';
     $nomeArquivo = sanitizarInput($_POST['nome_arquivo'] ?? 'exame', 255);
 
-    // 1) Texto já extraído no navegador (OCR/PDF.js) — caminho preferido
+    // 1) Texto já extraído no navegador (PDF.js, PDFs digitais) — zero token
     if (!empty($_POST['conteudo_ocr'])) {
         $texto = sanitizarInput($_POST['conteudo_ocr'], 80000);
     }
-    // 2) Ou um PDF enviado para extração no servidor
+    // 2) Imagens para Claude Vision (PDF escaneado ou foto enviada pelo browser)
+    elseif (!empty($_POST['imagem_base64'])) {
+        $raw = json_decode($_POST['imagem_base64'], true);
+        if (!is_array($raw) || empty($raw)) {
+            responder(['ok' => false, 'resposta' => 'Formato de imagem inválido.'], 422);
+        }
+        $imagens = [];
+        foreach (array_slice($raw, 0, 5) as $img) {
+            $mime = $img['mime'] ?? '';
+            $data = $img['data'] ?? '';
+            if (!in_array($mime, ['image/jpeg', 'image/png'], true)) continue;
+            if ($data === '' || !preg_match('/^[A-Za-z0-9+\/]/', $data)) continue;
+            $imagens[] = ['data' => $data, 'mime' => $mime];
+        }
+        if (!$imagens) {
+            responder(['ok' => false, 'resposta' => 'Nenhuma imagem válida recebida.'], 422);
+        }
+        $texto = extrairTextoVision($imagens);
+    }
+    // 3) Ou um PDF enviado para extração no servidor (fallback)
     elseif (!empty($_FILES['arquivo']['tmp_name']) && is_uploaded_file($_FILES['arquivo']['tmp_name'])) {
         if (($_FILES['arquivo']['size'] ?? 0) === 0) {
             responder(['ok' => false, 'resposta' => 'O arquivo enviado está vazio.'], 422);
