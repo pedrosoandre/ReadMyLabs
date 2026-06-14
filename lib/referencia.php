@@ -22,6 +22,37 @@ function carregarMarcadores(PDO $db): array {
 }
 
 /**
+ * Enriquecimento opcional pelo RAG: para os marcadores que JÁ temos faixa de
+ * referência, devolve sinônimos extras vindos do LOINC (tabela kb_marcadores).
+ * Isso faz o regex local reconhecer variações de nome (TGO = AST = aspartato
+ * aminotransferase) sem gastar token. No-op seguro: se a tabela kb_marcadores
+ * não existir (RAG não instalado), retorna [].
+ *
+ * @param string[] $nomesCanonicos nomes presentes em marcadores_referencia
+ * @return array<int,array{termo:string,nome:string}>
+ */
+function expandirTermosComKb(PDO $db, array $nomesCanonicos): array {
+    if (!$nomesCanonicos) return [];
+    try {
+        $ph   = implode(',', array_fill(0, count($nomesCanonicos), '?'));
+        $stmt = $db->prepare(
+            "SELECT nome_canonico, sinonimos FROM kb_marcadores WHERE nome_canonico IN ($ph)"
+        );
+        $stmt->execute(array_values($nomesCanonicos));
+    } catch (\PDOException $e) {
+        return []; // kb_marcadores ainda não existe — RAG não instalado
+    }
+    $extra = [];
+    foreach ($stmt as $row) {
+        foreach (explode('|', (string) $row['sinonimos']) as $s) {
+            $s = trim($s);
+            if ($s !== '') $extra[] = ['termo' => $s, 'nome' => $row['nome_canonico']];
+        }
+    }
+    return $extra;
+}
+
+/**
  * Normaliza um número escrito no padrão brasileiro/internacional.
  * "13,8" -> 13.8 | "1.200,50" -> 1200.5 | "11.200" -> 11200 | "5.9" -> 5.9
  */
@@ -124,6 +155,11 @@ function classificarExame(string $texto, ?string $sexo, ?int $idade, PDO $db): a
             $termos[] = ['termo' => $termo, 'nome' => $nome];
         }
     }
+    // RAG (opcional): junta sinônimos do LOINC para os marcadores que já temos.
+    foreach (expandirTermosComKb($db, array_keys($grupos)) as $par) {
+        $termos[] = $par;
+    }
+
     usort($termos, fn($a, $b) => mb_strlen($b['termo']) <=> mb_strlen($a['termo']));
 
     $resultados = [];

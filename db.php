@@ -42,5 +42,16 @@ function db(): PDO {
         throw new RuntimeException('Não foi possível conectar ao banco.');
     }
 
+    // O wait_timeout do MySQL na Hostinger é 20s. Chamadas longas ao Claude
+    // (ex.: explicar muitos marcadores) deixam a conexão ociosa por mais que
+    // isso, e o servidor a derruba → "MySQL server has gone away" (erro 2006)
+    // no INSERT seguinte. Estendemos para 600s (bem acima do timeout de 90s do
+    // cURL do Claude), evitando a queda. Falha silenciosa se o host não deixar.
+    try {
+        $pdo->exec('SET SESSION wait_timeout=600');
+    } catch (PDOException $e) {
+        error_log('db(): não foi possível ajustar wait_timeout — ' . $e->getMessage());
+    }
+
     return $pdo;
 }
