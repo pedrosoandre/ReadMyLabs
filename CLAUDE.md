@@ -18,7 +18,7 @@ Arquitetura vem **antes** do código: definir camadas e fronteiras antes de escr
 - Frontend: `index.html` único (design "Aurora", dark, tudo inline — CSS+JS no mesmo arquivo). PDF.js extrai texto de PDFs digitais no navegador; PDFs escaneados e imagens são rasterizados e enviados como base64 para o backend (Claude Vision).
 - Backend: PHP puro (sem framework) na Hostinger compartilhada. Entrada única: `analisar.php`.
 - Banco: MySQL (`u854646013_examesip`). Schema em `sql/schema.sql`, seed com 46 marcadores em `sql/seed_marcadores.sql`.
-- IA: API Anthropic direto via cURL (`lib/claude.php`), modelo `claude-opus-4-8`.
+- IA: API Anthropic direto via cURL (`lib/claude.php`). **Modelo por tarefa** (economia de custo, constantes no topo de `lib/claude.php`): OCR Vision → `claude-haiku-4-5` (`MODELO_OCR`); explicações/conclusão/"o que é o exame" (redação **aterrada**) → `claude-sonnet-4-6` (`MODELO_EXPLICACAO`); sintomas (raciocínio clínico **livre**, não aterrado) → `claude-sonnet-4-6` (`MODELO_SINTOMAS`). (Opus 4.8 deixou de ser usado; bump `MODELO_SINTOMAS` p/ Opus se quiser mais qualidade na triagem.)
 
 ## Arquitetura de economia de tokens (não quebrar!)
 1. `lib/referencia.php` classifica os marcadores **localmente** contra a tabela `marcadores_referencia` — zero token.
@@ -39,11 +39,23 @@ Módulo autocontido para "o que é este exame?". **Feature-flagged**: sem `VOYAG
 ## OCR via Claude Vision
 - `chamarClaude()` em `lib/claude.php` aceita `string|array` no parâmetro `$prompt` (suporta blocos de conteúdo Vision).
 - `extrairTextoVision(array $imagens): string` — recebe array `['data'=>base64,'mime'=>'image/jpeg'|'image/png']`, retorna texto formatado `"Marcador: valor unidade"` por linha para o regex de `classificarExame()`.
-- Custo Vision: ~1.000–2.000 tokens/página (Opus). Compensa vs. Tesseract (30-60s OCR ruim que falhava nos regex).
+- Custo Vision: ~1.000–2.000 tokens/página, agora no `claude-haiku-4-5` (`MODELO_OCR`) — OCR é transcrição, não precisa do Opus (~5× mais barato). Compensa vs. Tesseract (30-60s OCR ruim que falhava nos regex).
+
+## Exame de imagem (radiologia) — modo `imagem`, MESMO upload do exame
+Sem card/campo próprios: usa o **mesmo upload** do exame. O backend detecta o tipo pela classificação local — documento **sem marcadores laboratoriais** (`classificarExame()` vazio) é roteado em `analisarExame()` para `responderImagem()`.
+- **Híbrido:** explica o **laudo** (texto do radiologista) em linguagem leiga; OU descreve o **filme** (imagem do exame) de forma **estritamente NÃO-diagnóstica** (anatomia/tipo de exame; nunca afirmar achados/normalidade — "não há alterações" é tão proibido quanto "há lesão").
+- `responderImagem()` (núcleo em `analisar.php`) usa `chamarClaudeVision()` (`lib/claude.php`, helper Vision reusado pelo OCR) + `MODELO_IMAGEM` (Sonnet). Saída JSON `{conteudo:laudo|filme, titulo_exame, resumo_leigo, tranquilizador[], merece_atencao[], perguntas_medico[], aviso}`. **Backstop de servidor:** no filme, zera `tranquilizador`/`merece_atencao` (defesa em profundidade).
+- **Frontend:** o handler do exame ramifica por `d.tipo`; `renderImagem()`/`gerarPDFImagem()` renderizam no `#imgResult` do mesmo card (reusam `pdfSan`/`PDFC` do PDF de exame).
+- **LGPD:** não persiste laudo/imagem nem a explicação derivada (grava só evento de uso, `resultado=''`).
+- **Kill-switch:** `IMAGEM_HABILITADA=0` no `.env` do servidor desliga (volta ao erro "não reconhecemos marcadores"). A rota `tipo=imagem`/`analisarImagem()` ainda existe (wrapper `$_POST`), mas o front não a usa.
+- **Banco:** `exames.tipo` é ENUM e inclui `'imagem'` (migração em `rag/schema_rag.sql`).
+- A redação do filme é Vision-LLM, **não** radiologia validada: o disclaimer não-diagnóstico e o teste de segurança (filme/injection) são parte do design, **não opcionais** — é o que mantém o app como ferramenta educativa, não dispositivo médico.
 
 ## Proteções contra abuso (verificadas em produção)
 - reCAPTCHA v2 checkbox obrigatório; o toggle `REQUIRE_RECAPTCHA=0` **não** desliga (PHP `'0' ?: '1'` → falha fechado; usar `off` em dev local).
-- Rate limit: **1 análise/dia por IP** (`LIMITE_DIARIO=1` no `.env` do servidor; padrão do código é 3 se ausente). Arquivos em `limite_ip/`, hash sha256 do IP, independe do banco. Vale para TODOS os modos (exame, sintomas, explicar) — a checagem roda antes do roteamento. É a trava real anti-abuso (o paywall do front é só vitrine, burlável por aba anônima).
+- Rate limit: **1 análise/dia por IP** (`LIMITE_DIARIO=1` no `.env` do servidor; padrão do código é 3 se ausente). Arquivos em `limite_ip/`, hash sha256 do IP, independe do banco. Vale para TODOS os modos (exame, sintomas, explicar) — a checagem roda antes do roteamento. É a trava real anti-abuso.
+- **Paywall + limite IP cooperam (sempre ligados em produção):** o paywall (front, `localStorage`) é a "vitrine" rápida; o limite de IP é a tranca real. Quando o servidor responde `limite_atingido`, o front abre o **mesmo modal de paywall** (`pwAbrir()`), então mesmo na aba anônima (que zera o `localStorage`) o usuário bate no limite de IP e vê a oferta — o furo da aba anônima fica fechado.
+- **Porta de teste `?dev=TOKEN`:** abrir o site com `?dev=<DEV_BYPASS_TOKEN do .env>` faz o front pular o paywall e o `analisar.php` pular o limite de IP (só se o token bater; sem token/errado, tudo vale normalmente). Evita ligar/desligar flags. NUNCA divulgar o token. O token vive só no `.env` do servidor (não no HTML público).
 - Contador só incrementa **após** captcha válido; Claude só é chamado após captcha + limite + DB OK.
 - `.htaccess` bloqueia acesso web a `.env` e `loads_env.php` (403) e seta CSP.
 - **Prompt injection (sintomas):** campos `$sintomas/$duracao/$intensidade` envolvidos em tags XML no prompt; system prompt instrui o Claude a ignorar comandos nesses campos.
@@ -67,6 +79,11 @@ Módulo autocontido para "o que é este exame?". **Feature-flagged**: sem `VOYAG
 - Cuidado com `pkill -f` em comandos via plink: o padrão casa com a própria sessão SSH e a mata. Usar truque do colchete: `pgrep -f "padrao[x]"`.
 - **Aspas no plink via PowerShell:** o PowerShell engole aspas (simples e duplas) antes de chegarem ao bash → comandos com `"`/`'` (ex.: SQL com `COUNT(*)` ou `LIKE 'x'`) viram erro de sintaxe e o bash recusa a linha inteira. Solução: comandos sem aspas (a senha `-pSENHA` sem aspas funciona) ou jogar o SQL num arquivo e `mysql ... < arquivo.sql`.
 - **NUNCA** criar backup do `.env` dentro do `public_html` (ex.: `.env.bak_*`): o `.htaccess` bloqueia `.env`/`loads_env.php`, mas não os `.bak` → vazaria todas as chaves pela web. Backups do `.env` vão para `~/` (fora do web root).
+
+## Testes (`tests/`, não deployar)
+- `tests/smoke.sh [BASE_URL] [DEV_TOKEN]`: HTTP contra o site (sem custo de IA) — home 200/render, validação de entrada (405/400), gate do reCAPTCHA (exame **e** imagem), `.env`/`loads_env.php` 403, 404, CSP, sem vazamento de chaves. Os POSTs falham no captcha **antes** de incrementar, então não consomem o limite de IP; passe `DEV_TOKEN` p/ blindar contra o rate-limit.
+- `tests/pipeline.php [BASE_APP] [--full]`: lógica no servidor via **CLI** (contorna o captcha chamando funções direto). Detector de auto-roteamento (lab=marcadores / laudo=0), classificação, ENUM `tipo`+imagem; `--full` faz 1 chamada ao Claude. Rodar no servidor: `pscp` p/ `~/` e `php ~/pipeline.php --full` (depois apagar).
+- reCAPTCHA em produção impede E2E HTTP de uma análise completa — por isso a lógica fica no `pipeline.php` (CLI). Última execução: **19/19 PASS** (13 HTTP + 6 CLI).
 
 ## Git
 - Repo: `https://github.com/pedrosoandre/ReadMyLabs` (branch `master`).
