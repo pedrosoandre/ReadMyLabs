@@ -132,6 +132,7 @@ h1 .grad{background:linear-gradient(110deg,var(--indigo),var(--violet) 50%,var(-
 .conclusao-toggle:hover{color:var(--violet)}
 .conclusao-aviso{font-size:11.5px;color:var(--faint);border-top:1px solid var(--stroke);padding-top:10px;margin-top:4px}
 .markers{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.mk-sep{font-size:11.5px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:8px 2px 2px}
 .marker{display:flex;align-items:center;gap:14px;padding:13px 15px;border-radius:13px;background:var(--panel);border:1px solid var(--stroke);opacity:0;transform:translateY(8px);animation:rise .5s var(--ease) forwards}
 .marker .mk-icon{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:grid;place-items:center;background:rgba(255,255,255,.05);border:1px solid var(--stroke)}
 .marker .mk-icon svg{width:18px;height:18px;stroke:var(--violet);fill:none}
@@ -309,6 +310,7 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
@@ -383,7 +385,9 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
             <div id="conclusao" style="display:none"></div>
             <div class="markers" id="markers"></div>
             <div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> Esta é uma interpretação informativa gerada por IA a partir de um exemplo. Sempre leve seus exames a um profissional de saúde.</div>
+            <button class="btn btn-ghost" id="btnPdfExame" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF da análise</button>
           </div>
+          <div class="result" id="imgResult"></div>
         </div>
       </div>
     </div>
@@ -617,6 +621,10 @@ const SITEKEY='6Lfj2IcrAAAAABVLFqE3bNN9zBb-RqB_9jvPsEf-';
 const ENDPOINT='analisar.php';
 // "Entenda seu exame" (RAG): vire true DEPOIS de importar o LOINC e configurar VOYAGE_API_KEY no .env.
 const RAG_HABILITADO=false;
+// Paywall e limite de IP ficam SEMPRE ligados em produção. Para testar sem paredes,
+// abra a URL com ?dev=TOKEN (mesmo TOKEN do DEV_BYPASS_TOKEN no .env do servidor):
+// o front pula o paywall e o servidor pula o limite de IP (só se o token bater).
+const DEV = (new URLSearchParams(location.search)).get('dev') || '';
 let rcExame=null, rcSintomas=null, rcExplicar=null;
 function rcInit(){
   if(!window.grecaptcha||!grecaptcha.render) return false;
@@ -630,10 +638,13 @@ function rcInit(){
 function rcToken(id){ try{ return (window.grecaptcha&&id!==null)?grecaptcha.getResponse(id):''; }catch(e){ return ''; } }
 
 // ---------- paywall: 1 análise gratuita, depois tela de compra ----------
+// PAYWALL_ATIVO=false desliga o paywall para TODOS (pagamento real ainda pendente).
+// Religar = virar para true. Independe de IP/localStorage, então nunca "volta" sozinho.
+const PAYWALL_ATIVO=false;
 const PW_KEY='rml_free_usada';
 const paywall=document.getElementById('paywall');
-function pwUsada(){try{return localStorage.getItem(PW_KEY)==='1'}catch(e){return false}}
-function pwMarcar(){try{localStorage.setItem(PW_KEY,'1')}catch(e){}}
+function pwUsada(){if(!PAYWALL_ATIVO||DEV)return false;try{return localStorage.getItem(PW_KEY)==='1'}catch(e){return false}}
+function pwMarcar(){if(!PAYWALL_ATIVO)return;try{localStorage.setItem(PW_KEY,'1')}catch(e){}}
 function pwAbrir(){paywall.classList.add('show');document.body.style.overflow='hidden'}
 function pwFechar(){paywall.classList.remove('show');document.body.style.overflow=''}
 document.getElementById('pwSkip').addEventListener('click',pwFechar);
@@ -691,6 +702,9 @@ const ringSpan=result.querySelector('.res-ring span');
 const sumH4=result.querySelector('.res-summary h4');
 const sumP=result.querySelector('.res-summary p');
 const BADGE={normal:['mk-good','Normal'],baixo:['mk-warn','Baixo'],alto:['mk-high','Alto'],critico:['mk-high','Crítico']};
+let ultimoExame=null; // guarda a última resposta p/ gerar o PDF
+const btnPdfExame=document.getElementById('btnPdfExame');
+if(btnPdfExame) btnPdfExame.addEventListener('click',()=>gerarPDFExame(ultimoExame));
 
 analyzeBtn.addEventListener('click',async()=>{
   if(pwUsada()){pwAbrir();return;}
@@ -705,6 +719,7 @@ analyzeBtn.addEventListener('click',async()=>{
     fd.append('tipo','exame');
     fd.append('nome_arquivo',arquivoSel.name);
     fd.append('g-recaptcha-response',tok);
+    fd.append('dev',DEV);
     if(resultado.tipo==='texto'){
       fd.append('conteudo_ocr',resultado.dados);
     } else {
@@ -717,8 +732,11 @@ analyzeBtn.addEventListener('click',async()=>{
       const r=await fetch(ENDPOINT,{method:'POST',body:fd,signal:ctrl.signal});
       d=await r.json();
     }finally{clearTimeout(timer);}
+    if(d&&d.limite_atingido){if(PAYWALL_ATIVO){pwAbrir();}else{alert(d.resposta||'Limite diário atingido. Tente novamente amanhã.');}return;}
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
-    renderExame(d);
+    // backend detecta exame de imagem (sem marcadores) e devolve tipo:'imagem' no MESMO upload
+    if(d.tipo==='imagem'){ result.classList.remove('show'); renderImagem(d); }
+    else { const ir=document.getElementById('imgResult'); if(ir) ir.classList.remove('show'); renderExame(d); }
     pwMarcar();
   }catch(e){
     alert(e.name==='AbortError'?'A análise demorou muito. Tente novamente.':(e.message||'Erro ao analisar o exame.'));
@@ -729,6 +747,7 @@ analyzeBtn.addEventListener('click',async()=>{
 });
 
 function renderExame(d){
+  ultimoExame=d; // habilita o "Baixar PDF da análise"
   // ── conclusão clínica ──────────────────────────────────────────
   const conclusaoEl=document.getElementById('conclusao');
   const c=d.conclusao;
@@ -763,9 +782,18 @@ function renderExame(d){
     conclusaoEl.innerHTML='';
     conclusaoEl.style.display='none';
   }
-  // ── lista de marcadores ────────────────────────────────────────
+  // ── lista de marcadores (alterados primeiro, normais depois) ────
   markers.innerHTML='';
-  (d.marcadores||[]).forEach((m,i)=>{
+  const ordemMk={critico:0,alto:1,baixo:2,normal:3};
+  const listaMk=(d.marcadores||[]).slice().sort((a,b)=>(ordemMk[a.status]??9)-(ordemMk[b.status]??9));
+  const temAlterados=listaMk.some(m=>m.status&&m.status!=='normal');
+  let sepFeito=false;
+  listaMk.forEach((m,i)=>{
+    if(temAlterados&&(!m.status||m.status==='normal')&&!sepFeito){
+      const sep=document.createElement('div');
+      sep.className='mk-sep';sep.textContent='Dentro da referência';
+      markers.appendChild(sep);sepFeito=true;
+    }
     const [cls,txt]=BADGE[m.status]||BADGE.normal;
     const val=`${formatNum(m.valor)} ${m.unidade||''}`.trim();
     const sub=m.explicacao||m.descricao||m.categoria||'';
@@ -793,6 +821,233 @@ function togglePadroes(id,btn){
   btn.textContent=open?'▾ Ocultar padrões identificados':'▸ Ver '+(el.children.length)+' padrão'+(el.children.length>1?'s identificados':' identificado')+' com fontes';
 }
 
+// ---------- geração de PDF (cliente, custo zero de token) ----------
+// jsPDF/helvetica cobre Latin-1: acentos PT-BR saem certos, mas →, ≥, ≤ etc. não —
+// pdfSan() troca esses por equivalentes seguros (senão a linha inteira corrompe).
+function pdfPronto(){return !!(window.jspdf&&window.jspdf.jsPDF);}
+function pdfSan(s){return String(s==null?'':s)
+  .replace(/→/g,'->').replace(/[≥]/g,'>=').replace(/[≤]/g,'<=')
+  .replace(/[–—]/g,'-').replace(/[“”„]/g,'"').replace(/[‘’]/g,"'")
+  .replace(/…/g,'...').replace(/[•·]/g,'-').replace(/ /g,' ');}
+// paleta print-friendly (fundo branco) derivada do tema Aurora
+const PDFC={
+  indigo:[124,131,255], ink:[33,33,44], gray:[92,92,112], faint:[140,140,158],
+  line:[228,228,238], card:[248,248,252],
+  red:[208,52,66], redBg:[255,231,234], amber:[168,112,12], amberBg:[255,243,213],
+  green:[24,148,106], greenBg:[223,247,238]
+};
+function pdfStatus(st){
+  if(st==='alto'||st==='critico')return{main:PDFC.red,bg:PDFC.redBg,rot:st==='critico'?'Crítico':'Alto'};
+  if(st==='baixo')return{main:PDFC.amber,bg:PDFC.amberBg,rot:'Baixo'};
+  return{main:PDFC.green,bg:PDFC.greenBg,rot:'Normal'};
+}
+function gerarPDFExame(d){
+  if(!d){alert('Faça uma análise antes de baixar o PDF.');return;}
+  if(!pdfPronto()){alert('O gerador de PDF ainda está carregando. Tente de novo em instantes.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const data=new Date().toLocaleDateString('pt-BR');
+  const X=20, W=170, R=190, LH=6; let y=20;
+  const checar=h=>{if(y+h>280){doc.addPage();y=20;}};
+  const bloco=(txt,size,cor,estilo,lh)=>{
+    doc.setFont('helvetica',estilo||'normal');doc.setFontSize(size);doc.setTextColor(cor[0],cor[1],cor[2]);
+    const step=lh||LH;
+    doc.splitTextToSize(pdfSan(txt),W).forEach(l=>{checar(step);doc.text(l,X,y);y+=step;});
+  };
+  // chip arredondado alinhado à direita de xRight; devolve x da borda esquerda
+  const chip=(label,main,bg,xRight,yb)=>{
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+    const tw=doc.getTextWidth(label),pad=2.6,h=5,w=tw+pad*2,x=xRight-w;
+    doc.setFillColor(bg[0],bg[1],bg[2]);doc.roundedRect(x,yb-3.7,w,h,1.2,1.2,'F');
+    doc.setTextColor(main[0],main[1],main[2]);doc.text(label,x+pad,yb);
+    return x;
+  };
+  // ── cabeçalho ──
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(...PDFC.indigo);
+  doc.text('ReadMyLabs',105,y,{align:'center'});y+=9;
+  doc.setFont('helvetica','normal');doc.setFontSize(14);doc.setTextColor(...PDFC.ink);
+  doc.text('Análise de Exame Laboratorial',105,y,{align:'center'});y+=7;
+  doc.setFontSize(10);doc.setTextColor(...PDFC.faint);
+  doc.text(pdfSan('Gerado em '+data+(d.arquivo?(' · '+d.arquivo):'')),105,y,{align:'center'});y+=8;
+  doc.setDrawColor(...PDFC.indigo);doc.setLineWidth(.4);doc.line(X,y,R,y);y+=9;
+  // ── faixa de urgência ──
+  const c=d.conclusao||{};
+  const U={verde:{...pdfStatus('normal'),label:'Sem alterações relevantes'},
+           amarelo:{...pdfStatus('baixo'),label:'Atenção — acompanhamento recomendado'},
+           vermelho:{...pdfStatus('alto'),label:'Investigação urgente recomendada'}}[c.urgencia];
+  if(U){
+    checar(15);
+    doc.setFillColor(...U.bg);doc.roundedRect(X,y,W,11,2,2,'F');
+    doc.setFillColor(...U.main);doc.circle(X+5,y+5.5,1.7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...U.main);
+    doc.text(pdfSan('Conclusão: '+U.label),X+9.5,y+7);
+    y+=11+6;
+  }
+  // ── resumo + barra de progresso ──
+  const r=d.resumo||{}, tot=r.total||0, norm=r.normais||0, pct=tot?Math.round(norm/tot*100):0;
+  checar(LH+5);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...PDFC.ink);
+  doc.text(pdfSan(norm+' de '+tot+' marcadores dentro do esperado'),X,y);y+=4;
+  doc.setFillColor(...PDFC.line);doc.roundedRect(X,y,W,2.6,1.3,1.3,'F');
+  if(pct>0){doc.setFillColor(...PDFC.green);doc.roundedRect(X,y,Math.max(W*pct/100,3),2.6,1.3,1.3,'F');}
+  y+=2.6+8;
+  // ── conclusão (texto) ──
+  if(c.texto){bloco(c.texto,10.5,PDFC.gray,'normal',5.4);y+=4;}
+  // ── pontos de atenção (cards) ──
+  (c.padroes||[]).forEach(p=>{
+    const acc=(c.urgencia==='vermelho')?PDFC.red:(c.urgencia==='amarelo'?PDFC.amber:PDFC.green);
+    doc.setFont('helvetica','bold');doc.setFontSize(10.5);
+    const titL=doc.splitTextToSize(pdfSan(p.titulo),W-12);
+    doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+    const intL=p.interpretacao?doc.splitTextToSize(pdfSan(p.interpretacao),W-12):[];
+    const actL=p.acao?doc.splitTextToSize(pdfSan(p.acao),W-16):[];
+    const fonL=p.fonte?doc.splitTextToSize(pdfSan('Fonte: '+p.fonte),W-12):[];
+    const H=4+titL.length*5+intL.length*4.5+(actL.length?actL.length*4.7+1:0)+(fonL.length?fonL.length*3.8+1.5:0)+3;
+    checar(H+3);
+    const top=y, xt=X+6; let yy=top+6;
+    doc.setFillColor(...PDFC.card);doc.roundedRect(X,top,W,H,2.2,2.2,'F');
+    doc.setFillColor(...acc);doc.roundedRect(X,top,1.8,H,.9,.9,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...PDFC.ink);
+    titL.forEach(l=>{doc.text(l,xt,yy);yy+=5;});
+    doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...PDFC.gray);
+    intL.forEach(l=>{doc.text(l,xt,yy);yy+=4.5;});
+    if(actL.length){
+      yy+=1;
+      doc.setFillColor(...acc);doc.triangle(xt,yy-2.4,xt,yy+0.1,xt+2.2,yy-1.15,'F');
+      doc.setFont('helvetica','bold');doc.setTextColor(...acc);
+      actL.forEach(l=>{doc.text(l,xt+4,yy);yy+=4.7;});
+    }
+    if(fonL.length){
+      yy+=1.5;doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(...PDFC.faint);
+      fonL.forEach(l=>{doc.text(l,xt,yy);yy+=3.8;});
+    }
+    y=top+H+5;
+  });
+  y+=2;
+  // ── marcadores (alterados primeiro, normais compactos) ──
+  checar(12);
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...PDFC.indigo);
+  doc.text('Marcadores',X,y);y+=7;
+  const ordem={critico:0,alto:1,baixo:2,normal:3};
+  const ms=(d.marcadores||[]).slice().sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9));
+  const alterados=ms.filter(m=>m.status&&m.status!=='normal');
+  const normais=ms.filter(m=>!m.status||m.status==='normal');
+  alterados.forEach(m=>{
+    const s=pdfStatus(m.status);
+    const val=[m.valor,m.unidade].filter(x=>x!==undefined&&x!==null&&x!=='').join(' ');
+    const expL=m.explicacao?doc.splitTextToSize(pdfSan(m.explicacao),W):[];
+    checar(7+expL.length*4.3+3);
+    chip(s.rot,s.main,s.bg,R,y);
+    doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(...PDFC.ink);
+    doc.text(pdfSan(m.nome+': '+val),X,y);y+=5;
+    if(expL.length){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...PDFC.gray);expL.forEach(l=>{checar(4.3);doc.text(l,X,y);y+=4.3;});}
+    y+=3;
+  });
+  if(normais.length){
+    checar(9);
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...PDFC.faint);
+    doc.text(pdfSan('DENTRO DA REFERÊNCIA'),X,y);y+=5.5;
+    normais.forEach(m=>{
+      const s=pdfStatus('normal');
+      const val=[m.valor,m.unidade].filter(x=>x!==undefined&&x!==null&&x!=='').join(' ');
+      checar(5.5);
+      chip(s.rot,s.main,s.bg,R,y);
+      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...PDFC.ink);
+      doc.text(pdfSan(m.nome+': '+val),X,y);y+=5.2;
+    });
+  }
+  // ── rodapé ──
+  y+=8;checar(16);
+  doc.setDrawColor(...PDFC.line);doc.setLineWidth(.3);doc.line(X,y,R,y);y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...PDFC.faint);
+  doc.splitTextToSize(pdfSan('Documento gerado automaticamente pelo ReadMyLabs. Interpretação informativa por IA — não substitui avaliação de um profissional de saúde.'),W).forEach(l=>{checar(4);doc.text(l,X,y);y+=4;});
+  doc.save('readmylabs_exame_'+data.replace(/\//g,'-')+'.pdf');
+}
+let ultimoSintoma=null;
+function gerarPDFSintomas(){
+  const d=ultimoSintoma;
+  if(!d){alert('Analise os sintomas antes de baixar o PDF.');return;}
+  if(!pdfPronto()){alert('O gerador de PDF ainda está carregando. Tente de novo em instantes.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const data=new Date().toLocaleDateString('pt-BR');
+  const X=20, W=170, LH=6; let y=20;
+  const checar=h=>{if(y+h>280){doc.addPage();y=20;}};
+  const bloco=(txt,size,cor,estilo)=>{
+    doc.setFont('helvetica',estilo||'normal');doc.setFontSize(size);doc.setTextColor(cor[0],cor[1],cor[2]);
+    doc.splitTextToSize(pdfSan(txt),W).forEach(l=>{checar(LH);doc.text(l,X,y);y+=LH;});
+  };
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(124,131,255);
+  doc.text('ReadMyLabs',105,y,{align:'center'});y+=9;
+  doc.setFont('helvetica','normal');doc.setFontSize(14);doc.setTextColor(0,0,0);
+  doc.text('Análise de Sintomas',105,y,{align:'center'});y+=7;
+  doc.setFontSize(10);doc.setTextColor(110,110,110);
+  doc.text('Gerado em '+data,105,y,{align:'center'});y+=8;
+  doc.setDrawColor(124,131,255);doc.line(X,y,190,y);y+=10;
+  bloco(d.resposta,11,[40,40,40]);
+  y+=10;checar(15);
+  bloco('Orientação informativa por IA — não substitui consulta médica.',9,[130,130,130],'italic');
+  doc.save('readmylabs_sintomas_'+data.replace(/\//g,'-')+'.pdf');
+}
+// PDF do exame de imagem — reusa pdfSan/PDFC do PDF de exame. Lê a última análise de imagem.
+function gerarPDFImagem(){
+  const d=ultimaImagem;
+  if(!d){alert('Faça uma análise antes de baixar o PDF.');return;}
+  if(!pdfPronto()){alert('O gerador de PDF ainda está carregando. Tente de novo em instantes.');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF();
+  const data=new Date().toLocaleDateString('pt-BR');
+  const X=20,W=170,R=190,LH=6; let y=20;
+  const ehFilme=d.conteudo==='filme';
+  const checar=h=>{if(y+h>280){doc.addPage();y=20;}};
+  const bloco=(txt,size,cor,estilo,lh)=>{doc.setFont('helvetica',estilo||'normal');doc.setFontSize(size);doc.setTextColor(cor[0],cor[1],cor[2]);const step=lh||LH;doc.splitTextToSize(pdfSan(txt),W).forEach(l=>{checar(step);doc.text(l,X,y);y+=step;});};
+  const secao=(titulo,itens,acc)=>{
+    if(!itens||!itens.length)return;
+    checar(10);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...acc);
+    doc.text(pdfSan(titulo),X,y);y+=5.5;
+    itens.forEach(it=>{
+      const ls=doc.splitTextToSize(pdfSan(it),W-6);
+      checar(ls.length*4.6+2);
+      doc.setFillColor(...acc);doc.circle(X+1.3,y-1.4,0.8,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...PDFC.gray);
+      ls.forEach(l=>{doc.text(l,X+5,y);y+=4.6;});
+      y+=1.5;
+    });
+    y+=3;
+  };
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(...PDFC.indigo);
+  doc.text('ReadMyLabs',105,y,{align:'center'});y+=9;
+  doc.setFont('helvetica','normal');doc.setFontSize(14);doc.setTextColor(...PDFC.ink);
+  doc.text('Exame de Imagem',105,y,{align:'center'});y+=7;
+  doc.setFontSize(10);doc.setTextColor(...PDFC.faint);
+  doc.text(pdfSan('Gerado em '+data),105,y,{align:'center'});y+=8;
+  doc.setDrawColor(...PDFC.indigo);doc.setLineWidth(.4);doc.line(X,y,R,y);y+=9;
+  if(ehFilme){
+    const lines=doc.splitTextToSize(pdfSan(d.aviso||'Descrição educativa da imagem. NÃO é diagnóstico e não confirma normalidade. O laudo do radiologista é o que vale.'),W-12);
+    const H=9+lines.length*4.6;
+    checar(H+4);
+    doc.setFillColor(...PDFC.amberBg);doc.roundedRect(X,y,W,H,2,2,'F');
+    doc.setFillColor(...PDFC.amber);doc.roundedRect(X,y,1.8,H,.9,.9,'F');
+    let yy=y+6;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...PDFC.amber);
+    doc.text(pdfSan('Descrição educativa - não é diagnóstico'),X+6,yy);yy+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...PDFC.gray);
+    lines.forEach(l=>{doc.text(l,X+6,yy);yy+=4.6;});
+    y+=H+7;
+  }
+  bloco(d.titulo_exame||'Exame de imagem',13,PDFC.ink,'bold');y+=1;
+  if(d.resumo_leigo){bloco(d.resumo_leigo,10.5,PDFC.gray,'normal',5.4);y+=4;}
+  secao('O que parece tranquilo',d.tranquilizador,PDFC.green);
+  secao('O que merece atenção',d.merece_atencao,PDFC.amber);
+  secao('Perguntas para levar ao médico',d.perguntas_medico,PDFC.indigo);
+  y+=4;checar(16);
+  doc.setDrawColor(...PDFC.line);doc.setLineWidth(.3);doc.line(X,y,R,y);y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...PDFC.faint);
+  doc.splitTextToSize(pdfSan(d.nota||'Documento informativo gerado por IA — não substitui avaliação de um profissional de saúde.'),W).forEach(l=>{checar(4);doc.text(l,X,y);y+=4;});
+  doc.save('readmylabs_imagem_'+data.replace(/\//g,'-')+'.pdf');
+}
+
 // ---------- sintomas ----------
 const symBtn=document.getElementById('symBtn');
 const symResult=document.getElementById('symResult');
@@ -810,6 +1065,7 @@ symBtn.addEventListener('click',async()=>{
     fd.append('duracao',document.getElementById('symDur').value||'');
     fd.append('intensidade',document.getElementById('symInt').value||'');
     fd.append('g-recaptcha-response',tok);
+    fd.append('dev',DEV);
     const ctrl=new AbortController();
     const timer=setTimeout(()=>ctrl.abort(),90000);
     let d;
@@ -817,9 +1073,11 @@ symBtn.addEventListener('click',async()=>{
       const r=await fetch(ENDPOINT,{method:'POST',body:fd,signal:ctrl.signal});
       d=await r.json();
     }finally{clearTimeout(timer);}
+    if(d&&d.limite_atingido){if(PAYWALL_ATIVO){pwAbrir();}else{alert(d.resposta||'Limite diário atingido. Tente novamente amanhã.');}return;}
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
     if(symPlaceholder) symPlaceholder.style.display='none';
-    symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6">${esc(d.resposta||'')}</div>`;
+    symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6">${esc(d.resposta||'')}</div><button class="btn btn-ghost" onclick="gerarPDFSintomas()" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF</button>`;
+    ultimoSintoma={resposta:d.resposta,nota:d.nota};
     symResult.classList.add('show');
     symResult.scrollIntoView({behavior:'smooth',block:'nearest'});
     pwMarcar();
@@ -847,6 +1105,7 @@ if(RAG_HABILITADO&&expBtn){
       fd.append('tipo','explicar');
       fd.append('pergunta',q);
       fd.append('g-recaptcha-response',tok);
+      fd.append('dev',DEV);
       const ctrl=new AbortController();
       const timer=setTimeout(()=>ctrl.abort(),90000);
       let d;
@@ -865,6 +1124,31 @@ if(RAG_HABILITADO&&expBtn){
       if(window.grecaptcha&&rcExplicar!==null){try{grecaptcha.reset(rcExplicar);}catch(_){}}
     }
   });
+}
+
+// ---------- exame de imagem (laudo + descrição não-diagnóstica): MESMO upload do exame ----------
+// O backend detecta automaticamente (documento sem marcadores laboratoriais = imagem) e devolve
+// tipo:'imagem'; o handler do exame chama renderImagem(). Sem card/campo/botão próprios.
+let ultimaImagem=null; // guarda a última resposta de imagem p/ gerar o PDF
+function renderImagem(d){
+  ultimaImagem=d;
+  const imgResult=document.getElementById('imgResult');
+  const ehFilme=d.conteudo==='filme';
+  const lista=arr=>(arr&&arr.length)?`<ul class="sym-list" style="margin-top:8px">${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
+  let html = ehFilme
+    ? `<div class="conclusao urg-amarelo"><div class="conclusao-header"><div class="urg-dot"></div><span class="conclusao-urg">Descrição educativa — não é diagnóstico</span></div><div class="conclusao-body"><div class="conclusao-texto">${esc(d.aviso||'Esta é uma descrição geral da imagem. Ela NÃO identifica doenças nem confirma que está tudo bem — o laudo do radiologista é o que vale.')}</div></div></div>`
+    : '';
+  html+=`<div class="padrao-item" style="margin-top:12px"><div class="padrao-titulo" style="font-size:15px">${esc(d.titulo_exame||'Exame de imagem')}</div>`;
+  if(d.resumo_leigo) html+=`<div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6;margin-top:6px">${esc(d.resumo_leigo)}</div>`;
+  html+=`</div>`;
+  if(!ehFilme&&d.tranquilizador&&d.tranquilizador.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">O que parece tranquilo</div>${lista(d.tranquilizador)}</div>`;
+  if(!ehFilme&&d.merece_atencao&&d.merece_atencao.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">O que merece atenção</div>${lista(d.merece_atencao)}</div>`;
+  if(d.perguntas_medico&&d.perguntas_medico.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">Perguntas para levar ao médico</div>${lista(d.perguntas_medico)}</div>`;
+  html+=`<div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> ${esc(d.nota||'')}</div>`;
+  html+=`<button class="btn btn-ghost" onclick="gerarPDFImagem()" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF</button>`;
+  imgResult.innerHTML=html;
+  imgResult.classList.add('show');
+  imgResult.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ---------- utils ----------

@@ -6,9 +6,18 @@
 //   2) cache de explicações: explicação por (marcador, status, sexo,
 //      faixa etária) é guardada no MySQL — hit = ZERO token.
 
-// Modelo das explicações. Trocar por 'claude-sonnet-4-6' ou
-// 'claude-haiku-4-5' reduz custo (a precisão médica do Opus é maior).
-const MODELO_EXPLICACAO = 'claude-opus-4-8';
+// Modelos por tarefa (economia de token — cada camada usa o mais barato que dá conta).
+//   OCR        = transcrição de imagem (tarefa simples) → Haiku, o mais barato.
+//   EXPLICACAO = redação ATERRADA (marcadores, conclusão, "o que é o exame"):
+//                o Claude só redige o que a lógica local/RAG já achou → Sonnet basta;
+//                o cache MySQL ainda amortiza o custo na repetição.
+//   SINTOMAS   = raciocínio clínico livre → Sonnet (escolha do usuário; era Opus). Bump p/ Opus se quiser + qualidade.
+const MODELO_OCR        = 'claude-haiku-4-5';
+const MODELO_EXPLICACAO = 'claude-sonnet-4-6';
+const MODELO_SINTOMAS   = 'claude-sonnet-4-6';
+//   IMAGEM = laudo de exame de imagem (explicação aterrada ao laudo) OU descrição NÃO-diagnóstica
+//            do filme — precisa de raciocínio + rigor de segurança → Sonnet. Bump p/ Opus se quiser.
+const MODELO_IMAGEM     = 'claude-sonnet-4-6';
 const ANTHROPIC_URL     = 'https://api.anthropic.com/v1/messages';
 
 /**
@@ -260,7 +269,12 @@ function redigirConclusao(array $padroes, ?string $sexo, ?int $idade, PDO $db): 
  *
  * @param array $imagens lista de ['data' => base64, 'mime' => 'image/jpeg'|'image/png']
  */
-function extrairTextoVision(array $imagens): string {
+/**
+ * Monta os blocos de conteúdo Vision (imagens + texto) e chama o Claude.
+ * Interface única de Vision — reusada pelo OCR de laudo laboratorial e pela análise de imagem.
+ * @param array $imagens  itens ['data'=>base64, 'mime'=>'image/jpeg'|'image/png']
+ */
+function chamarClaudeVision(array $imagens, string $promptText, $system = '', string $model = MODELO_OCR, int $maxTokens = 2000): array {
     $content = [];
     foreach ($imagens as $img) {
         $mime = in_array($img['mime'] ?? '', ['image/jpeg', 'image/png'], true)
@@ -270,15 +284,16 @@ function extrairTextoVision(array $imagens): string {
             'source' => ['type' => 'base64', 'media_type' => $mime, 'data' => $img['data']],
         ];
     }
-    $content[] = [
-        'type' => 'text',
-        'text' => 'Extraia todo o texto deste exame laboratorial. Para cada marcador, '
-            . 'escreva uma linha no formato: "Nome do marcador: valor unidade". '
-            . 'Mantenha os valores numéricos exatos como aparecem na imagem. '
-            . 'Retorne apenas o texto extraído, sem comentários ou formatação extra.',
-    ];
+    $content[] = ['type' => 'text', 'text' => $promptText];
+    return chamarClaude($content, $system, $model, $maxTokens);
+}
 
-    $r = chamarClaude($content, '', MODELO_EXPLICACAO, 2000);
+function extrairTextoVision(array $imagens): string {
+    $prompt = 'Extraia todo o texto deste exame laboratorial. Para cada marcador, '
+        . 'escreva uma linha no formato: "Nome do marcador: valor unidade". '
+        . 'Mantenha os valores numéricos exatos como aparecem na imagem. '
+        . 'Retorne apenas o texto extraído, sem comentários ou formatação extra.';
+    $r = chamarClaudeVision($imagens, $prompt, '', MODELO_OCR, 2000);
     if (!$r['ok']) {
         error_log('extrairTextoVision: falhou — ' . ($r['texto'] ?: 'sem detalhe'));
     }

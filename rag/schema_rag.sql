@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS kb_vetores (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------
--- 5) Migração: permite registrar consultas "o que é este exame?"
---    no histórico de exames (analisar.php, tipo=explicar).
+-- 5) Migração: registra no histórico de exames as consultas "o que é este exame?"
+--    (tipo=explicar) e os exames de IMAGEM/radiologia (tipo=imagem).
 --    Rode DEPOIS de sql/schema.sql (que cria a tabela exames).
 -- ---------------------------------------------------------------
-ALTER TABLE exames MODIFY tipo ENUM('exame','sintomas','explicar') NOT NULL;
+ALTER TABLE exames MODIFY tipo ENUM('exame','sintomas','explicar','imagem') NOT NULL;
