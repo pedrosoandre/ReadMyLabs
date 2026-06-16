@@ -1134,9 +1134,13 @@ function renderImagem(d){
   ultimaImagem=d;
   const imgResult=document.getElementById('imgResult');
   const ehFilme=d.conteudo==='filme';
+  const marc=ehFilme&&!!d.sinais_marcacao; // triagem de urgência (marcações = sinal objetivo, não diagnóstico)
   const lista=arr=>(arr&&arr.length)?`<ul class="sym-list" style="margin-top:8px">${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
+  const bCls=marc?'urg-vermelho':'urg-amarelo';
+  const bTit=marc?'Procure atendimento com prioridade':'Descrição educativa — não é diagnóstico';
+  const prio=marc?`<div class="padrao-acao" style="color:var(--high);font-weight:600;margin-top:8px">⚠ Esta imagem tem marcações feitas por um profissional — leve o laudo e este exame ao seu médico o quanto antes.</div>`:'';
   let html = ehFilme
-    ? `<div class="conclusao urg-amarelo"><div class="conclusao-header"><div class="urg-dot"></div><span class="conclusao-urg">Descrição educativa — não é diagnóstico</span></div><div class="conclusao-body"><div class="conclusao-texto">${esc(d.aviso||'Esta é uma descrição geral da imagem. Ela NÃO identifica doenças nem confirma que está tudo bem — o laudo do radiologista é o que vale.')}</div></div></div>`
+    ? `<div class="conclusao ${bCls}"><div class="conclusao-header"><div class="urg-dot"></div><span class="conclusao-urg">${bTit}</span></div><div class="conclusao-body"><div class="conclusao-texto">${esc(d.aviso||'Esta é uma descrição geral da imagem. Ela NÃO identifica doenças nem confirma que está tudo bem — o laudo do radiologista é o que vale.')}</div>${prio}</div></div>`
     : '';
   html+=`<div class="padrao-item" style="margin-top:12px"><div class="padrao-titulo" style="font-size:15px">${esc(d.titulo_exame||'Exame de imagem')}</div>`;
   if(d.resumo_leigo) html+=`<div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6;margin-top:6px">${esc(d.resumo_leigo)}</div>`;

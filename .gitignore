@@ -15,6 +15,10 @@ debug-*.html
 limpar-limite.php
 zerar-contagem.php
 
+# Helpers one-off (rodam no servidor via SSH e são apagados)
+_set_config.php
+_*.php
+
 # Logs e caches
 *.log
 *.cache
