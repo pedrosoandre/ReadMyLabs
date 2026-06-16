@@ -19,6 +19,13 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/referencia.php';
 require_once __DIR__ . '/lib/claude.php';
 
+// Auth (opcional): só carrega se o subsistema estiver no deploy. Sem auth, segue
+// o fluxo anônimo (limite por IP) — falha-para-desligado.
+if (is_file(__DIR__ . '/auth/lib/sessao.php')) {
+    require_once __DIR__ . '/auth/lib/sessao.php';
+    require_once __DIR__ . '/auth/lib/quota.php';
+}
+
 // RAG de exames (opcional): só carrega se o subsistema estiver no deploy.
 // Sem isto, o modo "explicar" responde que está em configuração.
 if (is_file(__DIR__ . '/rag/lib/resolver.php')) {
@@ -97,57 +104,73 @@ function extrairTextoPDF(string $arquivoTmp): string {
 }
 
 // ---------------------------------------------------------------
-// Rate limiting por IP (arquivo, não depende do banco)
+// Identidade: logado (cota por conta) ou anônimo (limite por IP)
 // ---------------------------------------------------------------
 $ipHash    = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'cli');
-$hoje      = date('Y-m-d');
-$limiteDir = __DIR__ . '/limite_ip';
-if (!is_dir($limiteDir)) {
-    if (!mkdir($limiteDir, 0700, true) && !is_dir($limiteDir)) {
-        logRml('error', 'rate limit: não foi possível criar diretório', ['dir' => $limiteDir]);
-    }
-}
-$limiteArq = "$limiteDir/$ipHash.txt";
-// Porta de teste: ?dev=TOKEN (POST) com o token do .env pula o limite de IP.
-// Sem token (ou errado), o limite vale normalmente — produção fica protegida.
+$usuario   = function_exists('sessaoAtual') ? sessaoAtual() : null;
+
+// Porta de teste: ?dev=TOKEN (POST) com o token do .env pula limites.
 $devToken  = getenv('DEV_BYPASS_TOKEN') ?: '';
 $devBypass = ($devToken !== '' && ($_POST['dev'] ?? '') === $devToken);
-$limiteMax = $devBypass ? PHP_INT_MAX : (int) (getenv('LIMITE_DIARIO') ?: 3);
 
-$fpLimite = fopen($limiteArq, 'c+');
-if ($fpLimite === false) {
-    logRml('error', 'rate limit: fopen falhou', ['arq' => $limiteArq]);
-    responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
-}
-flock($fpLimite, LOCK_EX);
-$raw = stream_get_contents($fpLimite);
-$contagem = ['data' => $hoje, 'contagem' => 0];
-if ($raw !== '') {
-    $d = json_decode($raw, true);
-    if (is_array($d) && ($d['data'] ?? '') === $hoje) {
-        $contagem = $d;
-    }
-}
-if ($contagem['contagem'] >= $limiteMax) {
-    flock($fpLimite, LOCK_UN);
-    fclose($fpLimite);
-    logRml('warn', 'rate_limit_atingido', ['ip_hash' => $ipHash, 'contagem' => $contagem['contagem']]);
+// Logado mas sem confirmar e-mail: bloqueia (mensagem clara, sem consumir cota).
+if ($usuario && !$usuario['email_verificado'] && !$devBypass) {
     responder([
-        'ok'              => false,
-        'limite_atingido' => true,
-        'resposta'        => "Você atingiu o limite de $limiteMax análises hoje. Tente novamente amanhã.",
-    ]);
+        'ok'       => false,
+        'resposta' => 'Confirme seu e-mail para liberar a análise. Verifique sua caixa de entrada.',
+    ], 403);
+}
+
+// Anônimo: rate limit por IP (arquivo + flock). Logado: pulamos para a cota da conta.
+$fpLimite = null;
+$contagem = null;
+$limiteMax = 0;
+if (!$usuario) {
+    $hoje      = date('Y-m-d');
+    $limiteDir = __DIR__ . '/limite_ip';
+    if (!is_dir($limiteDir)) {
+        if (!mkdir($limiteDir, 0700, true) && !is_dir($limiteDir)) {
+            logRml('error', 'rate limit: não foi possível criar diretório', ['dir' => $limiteDir]);
+        }
+    }
+    $limiteArq = "$limiteDir/$ipHash.txt";
+    $limiteMax = $devBypass ? PHP_INT_MAX : (int) (getenv('LIMITE_DIARIO') ?: 3);
+
+    $fpLimite = fopen($limiteArq, 'c+');
+    if ($fpLimite === false) {
+        logRml('error', 'rate limit: fopen falhou', ['arq' => $limiteArq]);
+        responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
+    }
+    flock($fpLimite, LOCK_EX);
+    $raw = stream_get_contents($fpLimite);
+    $contagem = ['data' => $hoje, 'contagem' => 0];
+    if ($raw !== '') {
+        $d = json_decode($raw, true);
+        if (is_array($d) && ($d['data'] ?? '') === $hoje) $contagem = $d;
+    }
+    if ($contagem['contagem'] >= $limiteMax) {
+        flock($fpLimite, LOCK_UN);
+        fclose($fpLimite);
+        logRml('warn', 'rate_limit_atingido', ['ip_hash' => $ipHash, 'contagem' => $contagem['contagem']]);
+        responder([
+            'ok'              => false,
+            'limite_atingido' => true,
+            'resposta'        => "Você atingiu o limite de $limiteMax análises hoje. Entre na sua conta ou tente amanhã.",
+        ]);
+    }
 }
 
 // ---------------------------------------------------------------
 // Validação de entrada
 // ---------------------------------------------------------------
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
     responder(['ok' => false, 'resposta' => 'Método não permitido.'], 405);
 }
 
 $tipo = $_POST['tipo'] ?? '';
 if (!in_array($tipo, ['exame', 'sintomas', 'explicar', 'imagem'], true)) {
+    if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
     responder(['ok' => false, 'resposta' => 'Tipo de análise inválido.'], 400);
 }
 
@@ -158,20 +181,41 @@ $exigeCaptcha = ($reqCaptcha !== 'off' && $reqCaptcha !== '0' && $reqCaptcha !==
 if ($exigeCaptcha) {
     $token = $_POST['g-recaptcha-response'] ?? '';
     if (!$token || !$secretKey || !verificarRecaptcha($token, $secretKey)) {
-        logRml('warn', 'captcha_falhou', ['ip_hash' => $ipHash]);
+        if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
+        logRml('warn', 'captcha_falhou', ['ip_hash' => $ipHash, 'logado' => (bool) $usuario]);
         responder(['ok' => false, 'resposta' => 'Verificação do reCAPTCHA falhou.'], 400);
     }
 }
 
-// Consome 1 do limite só após passar nas validações (ainda dentro do lock)
-if (!$devBypass) {
-    $contagem['contagem']++;
-    ftruncate($fpLimite, 0);
-    rewind($fpLimite);
-    fwrite($fpLimite, json_encode($contagem));
+// Consome 1 do limite após validações.
+if ($usuario) {
+    if (!$devBypass) {
+        try {
+            $db = db();
+            $r = consumirCotaUsuario((int) $usuario['id'], (string) $usuario['plano']);
+            if (!$r['ok']) {
+                logRml('warn', 'cota_atingida', ['user_id' => $usuario['id'], 'plano' => $usuario['plano']]);
+                responder([
+                    'ok'              => false,
+                    'limite_atingido' => true,
+                    'resposta'        => 'Você usou todas as análises do seu plano hoje. Tente amanhã ou faça upgrade.',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            logRml('error', 'consumir_cota_falhou', ['erro' => $e->getMessage()]);
+            responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
+        }
+    }
+} elseif ($fpLimite) {
+    if (!$devBypass) {
+        $contagem['contagem']++;
+        ftruncate($fpLimite, 0);
+        rewind($fpLimite);
+        fwrite($fpLimite, json_encode($contagem));
+    }
+    flock($fpLimite, LOCK_UN);
+    fclose($fpLimite);
 }
-flock($fpLimite, LOCK_UN);
-fclose($fpLimite);
 
 // ---------------------------------------------------------------
 // Roteamento

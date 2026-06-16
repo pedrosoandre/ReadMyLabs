@@ -38,6 +38,17 @@ has "tipo=imagem no whitelist (trava no captcha, nao 'inválido')" "reCAPTCHA" "
 chk "GET /.env -> 403"          403 "$(code "$BASE/.env")"
 chk "GET /loads_env.php -> 403" 403 "$(code "$BASE/loads_env.php")"
 chk "GET inexistente -> 404"    404 "$(code "$BASE/zzz-nao-existe-$RANDOM")"
+chk "GET /auth/lib/sessao.php -> 403"   403 "$(code "$BASE/auth/lib/sessao.php")"
+chk "GET /auth/schema_auth.sql -> 403"  403 "$(code "$BASE/auth/schema_auth.sql")"
+chk "GET /email/lib/email.php -> 403"   403 "$(code "$BASE/email/lib/email.php")"
+
+# Auth — páginas de superfície
+chk "GET /entrar.php -> 200"    200 "$(code "$BASE/entrar.php")"
+chk "GET /cadastro.php -> 200"  200 "$(code "$BASE/cadastro.php")"
+chk "GET /recuperar.php -> 200" 200 "$(code "$BASE/recuperar.php")"
+chk "GET /auth-status.php -> 200" 200 "$(code "$BASE/auth-status.php")"
+AS="$(curl -s "$BASE/auth-status.php")"
+has "auth-status retorna logged_in:false sem cookie" 'logged_in":false' "$AS"
 
 # Headers de segurança
 HDR="$(curl -s -D - -o /dev/null "$BASE/")"

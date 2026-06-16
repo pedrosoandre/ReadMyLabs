@@ -40,6 +40,11 @@ Options -Indexes
     # Bloquear acesso a /limite_ip/
     RewriteRule ^limite_ip/ - [F,L]
 
+    # Bloquear libs internas e schemas (auth, email, rag não-runtime)
+    RewriteRule ^(auth|email|rag)/lib/ - [F,L]
+    RewriteRule ^(auth|rag)/.*\.sql$ - [F,L]
+    RewriteRule ^rag/ingest/ - [F,L]
+
     # Bloquear acesso a arquivos ocultos (.git, etc.)
     RewriteRule (^|/)\.(?!well-known) - [F,L]
 </IfModule>

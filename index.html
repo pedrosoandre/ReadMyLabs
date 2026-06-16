@@ -324,13 +324,13 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
       ReadMyLabs
     </a>
     <div class="nav-links">
+      <a href="#sintomas">Sintomas</a>
       <a href="#como">Como funciona</a>
       <a href="#exames">Exames</a>
-      <a href="#sintomas">Sintomas</a>
       <a href="#parcerias">Parcerias</a>
     </div>
-    <div class="nav-cta">
-      <a href="#top" class="btn btn-ghost">Entrar</a>
+    <div class="nav-cta" id="navCta">
+      <a href="/entrar.php" class="btn btn-ghost">Entrar</a>
       <a href="#analisar" class="btn btn-primary">Analisar exame</a>
     </div>
   </div>
@@ -393,6 +393,53 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
     </div>
   </div>
 </header>
+
+<section id="sintomas">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Análise de sintomas</div>
+      <h2>Sentindo algo? Descreva e receba orientação.</h2>
+      <p>Conte o que está sentindo e a IA sugere possíveis causas e o nível de cuidado recomendado — sempre como apoio, nunca como diagnóstico.</p>
+    </div>
+    <div class="sym-grid">
+      <div class="panel sym-form reveal">
+        <div class="field">
+          <label for="symText">Descreva seus sintomas</label>
+          <textarea id="symText" placeholder="Ex.: estou com dor no peito, febre e calafrios há dois dias..."></textarea>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label for="symDur">Duração</label>
+            <select id="symDur"><option>Menos de 1 dia</option><option selected>1 a 3 dias</option><option>4 a 7 dias</option><option>Mais de 1 semana</option></select>
+          </div>
+          <div class="field">
+            <label for="symInt">Intensidade</label>
+            <select id="symInt"><option>Leve</option><option selected>Moderada</option><option>Forte</option><option>Insuportável</option></select>
+          </div>
+        </div>
+        <div id="rc-sintomas" style="margin:0 0 14px"></div>
+        <button class="btn btn-primary" id="symBtn" style="width:100%;justify-content:center">Analisar sintomas</button>
+      </div>
+      <div class="panel sym-result" id="symResult">
+        <div class="tri" id="triBox">
+          <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
+          <div><h4>Atenção recomendada</h4><p>Seus sintomas sugerem procurar avaliação médica em breve.</p></div>
+        </div>
+        <ul class="sym-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg> Possíveis causas incluem quadros infecciosos ou inflamatórios — febre e calafrios costumam indicar resposta do organismo.</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg> Monitore a temperatura e a hidratação. Dor no peito persistente exige avaliação imediata.</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Leve esta análise e seus exames recentes ao atendimento para agilizar o diagnóstico.</li>
+        </ul>
+      </div>
+      <div class="panel sym-placeholder" id="symPlaceholder">
+        <div>
+          <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2a7.5 7.5 0 015.4 12.7l4.4 4.4-1.6 1.6-4.4-4.4A7.5 7.5 0 119.5 2z"/></svg></div>
+          Preencha ao lado e a orientação aparece aqui.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <section id="como">
   <div class="wrap">
@@ -459,53 +506,6 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
       <div id="rc-explicar" style="margin:0 0 14px"></div>
       <button class="btn btn-primary" id="expBtn" style="width:100%;justify-content:center">Explicar exame</button>
       <div id="expResult" style="display:none;margin-top:18px"></div>
-    </div>
-  </div>
-</section>
-
-<section id="sintomas">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <div class="eyebrow">Análise de sintomas</div>
-      <h2>Sentindo algo? Descreva e receba orientação.</h2>
-      <p>Conte o que está sentindo e a IA sugere possíveis causas e o nível de cuidado recomendado — sempre como apoio, nunca como diagnóstico.</p>
-    </div>
-    <div class="sym-grid">
-      <div class="panel sym-form reveal">
-        <div class="field">
-          <label for="symText">Descreva seus sintomas</label>
-          <textarea id="symText" placeholder="Ex.: estou com dor no peito, febre e calafrios há dois dias..."></textarea>
-        </div>
-        <div class="two-col">
-          <div class="field">
-            <label for="symDur">Duração</label>
-            <select id="symDur"><option>Menos de 1 dia</option><option selected>1 a 3 dias</option><option>4 a 7 dias</option><option>Mais de 1 semana</option></select>
-          </div>
-          <div class="field">
-            <label for="symInt">Intensidade</label>
-            <select id="symInt"><option>Leve</option><option selected>Moderada</option><option>Forte</option><option>Insuportável</option></select>
-          </div>
-        </div>
-        <div id="rc-sintomas" style="margin:0 0 14px"></div>
-        <button class="btn btn-primary" id="symBtn" style="width:100%;justify-content:center">Analisar sintomas</button>
-      </div>
-      <div class="panel sym-result" id="symResult">
-        <div class="tri" id="triBox">
-          <div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div>
-          <div><h4>Atenção recomendada</h4><p>Seus sintomas sugerem procurar avaliação médica em breve.</p></div>
-        </div>
-        <ul class="sym-list">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg> Possíveis causas incluem quadros infecciosos ou inflamatórios — febre e calafrios costumam indicar resposta do organismo.</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg> Monitore a temperatura e a hidratação. Dor no peito persistente exige avaliação imediata.</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Leve esta análise e seus exames recentes ao atendimento para agilizar o diagnóstico.</li>
-        </ul>
-      </div>
-      <div class="panel sym-placeholder" id="symPlaceholder">
-        <div>
-          <div class="pi"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2a7.5 7.5 0 015.4 12.7l4.4 4.4-1.6 1.6-4.4-4.4A7.5 7.5 0 119.5 2z"/></svg></div>
-          Preencha ao lado e a orientação aparece aqui.
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -1179,6 +1179,21 @@ function iconeCategoria(cat){
 
 const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.14});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// Nav dinâmica: troca "Entrar" por "Minha conta / Sair" quando logado.
+// Falha silenciosa se /auth-status.php não existir (subsistema auth desligado).
+(async()=>{
+  try{
+    const r=await fetch('/auth-status.php',{credentials:'same-origin',cache:'no-store'});
+    if(!r.ok) return;
+    const d=await r.json();
+    if(!d || !d.logged_in) return;
+    const cta=document.getElementById('navCta');
+    if(!cta) return;
+    const nome=esc((d.nome||d.email||'Conta').slice(0,24));
+    cta.innerHTML=`<a href="/conta.php" class="btn btn-ghost">${nome}</a><a href="/sair.php" class="btn btn-primary">Sair</a>`;
+  }catch(e){/* sem auth = nada muda */}
+})();
 </script>
 </body>
 </html>
