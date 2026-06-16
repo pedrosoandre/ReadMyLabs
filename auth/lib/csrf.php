@@ -14,6 +14,9 @@ function csrfTokenAtual(): string {
 
 function csrfValidar(?string $enviado): bool {
     if (!$enviado) return false;
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        session_start();
+    }
     $atual = $_SESSION['csrf_token'] ?? '';
     return $atual !== '' && hash_equals($atual, $enviado);
 }
