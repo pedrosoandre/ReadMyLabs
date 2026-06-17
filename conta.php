@@ -46,4 +46,8 @@ authRenderTopo('Minha conta', $banner[0] ?? null, $banner[1] ?? 'info');
 
 <a href="/" class="btn btn-primary btn-block">Voltar para o app</a>
 <div class="auth-foot"><a href="/sair.php">Sair da conta</a></div>
+<?php if (!empty($_GET['confirmado'])): ?>
+<script>window.addEventListener('load',function(){if(window.rml&&rml.event)rml.event('sign_up',{method:'email'});});</script>
+<?php endif; ?>
 <?php authRenderRodape();
+

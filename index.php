@@ -1,8 +1,10 @@
+<?php require_once __DIR__ . '/lib/analytics.php'; ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<?php analyticsHead(); ?>
 <title>ReadMyLabs — Aurora</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c83ff'/><path d='M10 8h5v8l-4 8h10l-4-8V8h5' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -738,6 +740,7 @@ analyzeBtn.addEventListener('click',async()=>{
     if(d.tipo==='imagem'){ result.classList.remove('show'); renderImagem(d); }
     else { const ir=document.getElementById('imgResult'); if(ir) ir.classList.remove('show'); renderExame(d); }
     pwMarcar();
+    if(window.rml&&rml.event)rml.event('generate_lead',{tipo:d.tipo||'exame'});
   }catch(e){
     alert(e.name==='AbortError'?'A análise demorou muito. Tente novamente.':(e.message||'Erro ao analisar o exame.'));
   }finally{
@@ -1081,6 +1084,7 @@ symBtn.addEventListener('click',async()=>{
     symResult.classList.add('show');
     symResult.scrollIntoView({behavior:'smooth',block:'nearest'});
     pwMarcar();
+    if(window.rml&&rml.event)rml.event('generate_lead',{tipo:'sintomas'});
   }catch(e){
     alert(e.name==='AbortError'?'A análise demorou muito. Tente novamente.':(e.message||'Erro ao analisar sintomas.'));
   }finally{
@@ -1195,5 +1199,7 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   }catch(e){/* sem auth = nada muda */}
 })();
 </script>
+<?php echo analyticsEventoFn(); ?>
+<?php analyticsBanner(); ?>
 </body>
 </html>

@@ -50,9 +50,15 @@ chk "GET /auth-status.php -> 200" 200 "$(code "$BASE/auth-status.php")"
 AS="$(curl -s "$BASE/auth-status.php")"
 has "auth-status retorna logged_in:false sem cookie" 'logged_in":false' "$AS"
 
+# Analytics: gtag + banner LGPD aparecem na home quando GA está configurado
+has "gtag carregado na home" "googletagmanager.com/gtag/js" "$HOME"
+has "Consent Mode v2 default denied" "consent','default'" "$HOME"
+has "Banner LGPD presente" "rmlCcAceitar" "$HOME"
+
 # Headers de segurança
 HDR="$(curl -s -D - -o /dev/null "$BASE/")"
 has "CSP presente" "Content-Security-Policy" "$HDR"
+has "CSP libera googletagmanager" "googletagmanager.com" "$HDR"
 
 echo "== resultado: $pass PASS / $fail FAIL =="
 [ "$fail" -eq 0 ]

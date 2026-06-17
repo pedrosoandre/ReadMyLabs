@@ -4,6 +4,7 @@
 // Sem dependência de framework — HTML inline.
 
 require_once __DIR__ . '/sessao.php';
+require_once __DIR__ . '/../../lib/analytics.php';
 
 function authRenderTopo(string $titulo, ?string $msg = null, string $msgTipo = 'erro'): void {
     $u   = sessaoAtual();
@@ -22,6 +23,7 @@ function authRenderTopo(string $titulo, ?string $msg = null, string $msgTipo = '
         : '<a href="/entrar.php" class="btn btn-ghost">Entrar</a><a href="/cadastro.php" class="btn btn-primary">Cadastrar</a>';
 
     $t = htmlspecialchars($titulo);
+    ob_start(); analyticsHead(); $gaHead = ob_get_clean();
     echo <<<HTML
 <!doctype html>
 <html lang="pt-BR">
@@ -29,6 +31,7 @@ function authRenderTopo(string $titulo, ?string $msg = null, string $msgTipo = '
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
+$gaHead
 <title>$t · ReadMyLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,9 +94,11 @@ HTML;
 }
 
 function authRenderRodape(): void {
+    ob_start(); echo analyticsEventoFn(); analyticsBanner(); $gaTail = ob_get_clean();
     echo <<<HTML
   </div>
 </main>
+$gaTail
 </body>
 </html>
 HTML;
