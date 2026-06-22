@@ -18,8 +18,11 @@ function authRenderTopo(string $titulo, ?string $msg = null, string $msgTipo = '
              : ($msgTipo === 'info' ? 'rgba(95,227,255,.32)' : 'rgba(255,125,138,.32)');
         $msgHtml = '<div class="auth-msg" style="border-color:' . $bd . ';background:' . $bg . ';color:' . $cor . '">' . htmlspecialchars($msg) . '</div>';
     }
+    $linkHist = ($u && !empty($u['email_verificado']))
+        ? '<a href="/historico.php" class="btn btn-ghost">Meus exames</a>'
+        : '';
     $navUser = $u
-        ? '<a href="/conta.php" class="btn btn-ghost">' . htmlspecialchars($u['nome'] ?: $u['email']) . '</a><a href="/sair.php" class="btn btn-ghost">Sair</a>'
+        ? $linkHist . '<a href="/conta.php" class="btn btn-ghost">' . htmlspecialchars($u['nome'] ?: $u['email']) . '</a><a href="/sair.php" class="btn btn-ghost">Sair</a>'
         : '<a href="/entrar.php" class="btn btn-ghost">Entrar</a><a href="/cadastro.php" class="btn btn-primary">Cadastrar</a>';
 
     $t = htmlspecialchars($titulo);

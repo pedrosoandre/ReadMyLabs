@@ -1195,7 +1195,11 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     const cta=document.getElementById('navCta');
     if(!cta) return;
     const nome=esc((d.nome||d.email||'Conta').slice(0,24));
-    cta.innerHTML=`<a href="/conta.php" class="btn btn-ghost">${nome}</a><a href="/sair.php" class="btn btn-primary">Sair</a>`;
+    // "Meus exames" só aparece com e-mail verificado (F4 exige verificação).
+    const hist = d.email_verificado
+      ? `<a href="/historico.php" class="btn btn-ghost">Meus exames</a>`
+      : '';
+    cta.innerHTML=`${hist}<a href="/conta.php" class="btn btn-ghost">${nome}</a><a href="/sair.php" class="btn btn-primary">Sair</a>`;
   }catch(e){/* sem auth = nada muda */}
 })();
 </script>

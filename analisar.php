@@ -26,6 +26,18 @@ if (is_file(__DIR__ . '/auth/lib/sessao.php')) {
     require_once __DIR__ . '/auth/lib/quota.php';
 }
 
+// Histórico criptografado (F4): só carrega se subsistema + crypto presentes.
+// Sem isto (ou sem RML_ENC_KEY), o app NÃO persiste nada do usuário —
+// falha-para-desligado: o usuário ainda recebe a análise, só não fica no histórico.
+if (is_file(__DIR__ . '/auth/lib/exames_repo.php')) {
+    require_once __DIR__ . '/auth/lib/exames_repo.php';
+}
+function historicoAtivo(): bool {
+    return function_exists('exameSalvar')
+        && function_exists('criptoHabilitado')
+        && criptoHabilitado();
+}
+
 // RAG de exames (opcional): só carrega se o subsistema estiver no deploy.
 // Sem isto, o modo "explicar" responde que está em configuração.
 if (is_file(__DIR__ . '/rag/lib/resolver.php')) {
@@ -303,12 +315,20 @@ function analisarExame(PDO $db, string $ipHash): void {
         responder(['ok' => false, 'resposta' => 'Não reconhecemos marcadores neste exame. Verifique se é um exame laboratorial.'], 422);
     }
 
-    // Registra início (fluxo laboratorial)
-    $stmt = $db->prepare(
-        'INSERT INTO exames (ip_hash, tipo, arquivo_nome, status) VALUES (:ip, :tipo, :arq, :status)'
-    );
-    $stmt->execute([':ip' => $ipHash, ':tipo' => 'exame', ':arq' => $nomeArquivo, ':status' => 'processando']);
-    $exameId = (int) $db->lastInsertId();
+    // Identidade desta análise (usada no final para decidir entre histórico encriptado vs telemetria anônima).
+    $u = function_exists('sessaoAtual') ? sessaoAtual() : null;
+    $persistirNoHistorico = $u && !empty($u['email_verificado']) && historicoAtivo();
+
+    // Registra início só no caminho anônimo (linha de telemetria que vamos completar no fim).
+    // Caminho do histórico: inserimos uma única linha encriptada ao final (atômico).
+    $exameId = null;
+    if (!$persistirNoHistorico) {
+        $stmt = $db->prepare(
+            'INSERT INTO exames (ip_hash, tipo, arquivo_nome, status) VALUES (:ip, :tipo, :arq, :status)'
+        );
+        $stmt->execute([':ip' => $ipHash, ':tipo' => 'exame', ':arq' => $nomeArquivo, ':status' => 'processando']);
+        $exameId = (int) $db->lastInsertId();
+    }
 
     // Explicações (cache MySQL + Claude só para o que falta)
     $exp = explicarMarcadores($marcadores, $perfil['sexo'], $perfil['idade'], $db);
@@ -353,19 +373,44 @@ function analisarExame(PDO $db, string $ipHash): void {
         $resposta['_custo'] = ['tokens_in' => $exp['tokens_in'], 'tokens_out' => $exp['tokens_out'], 'cache_hits' => $exp['cache_hits']];
     }
 
-    // Persiste resultado + telemetria
-    $db->prepare(
-        'UPDATE exames SET status=:st, marcadores=:m, resultado=:r,
-                tokens_in=:ti, tokens_out=:to, cache_hits=:ch WHERE id=:id'
-    )->execute([
-        ':st' => 'concluido',
-        ':m'  => json_encode($marcadores, JSON_UNESCAPED_UNICODE),
-        ':r'  => json_encode($resposta, JSON_UNESCAPED_UNICODE),
-        ':ti' => $exp['tokens_in'],
-        ':to' => $exp['tokens_out'],
-        ':ch' => $exp['cache_hits'],
-        ':id' => $exameId,
-    ]);
+    // Persistência: caminho do HISTÓRICO (logado + verificado + crypto ativa) vs TELEMETRIA (anônimo).
+    if ($persistirNoHistorico) {
+        try {
+            $resumoPublico = $alterados === 0
+                ? 'Tudo dentro da faixa de referência'
+                : "$alterados de " . count($marcadores) . " marcador(es) alterado(s)";
+            exameSalvar(
+                (int) $u['id'],
+                'exame',
+                $nomeArquivo,
+                $resumoPublico,
+                json_encode($marcadores, JSON_UNESCAPED_UNICODE),
+                json_encode($resposta,   JSON_UNESCAPED_UNICODE),
+                [
+                    'tokens_in'  => $exp['tokens_in'],
+                    'tokens_out' => $exp['tokens_out'],
+                    'cache_hits' => $exp['cache_hits'],
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Falha de persistência NÃO pode quebrar a resposta para o usuário.
+            // Loga e segue — usuário recebe a análise, só não fica salva.
+            logRml('error', 'historico_salvar_falhou', ['erro' => $e->getMessage(), 'uid' => $u['id']]);
+        }
+    } else {
+        $db->prepare(
+            'UPDATE exames SET status=:st, marcadores=:m, resultado=:r,
+                    tokens_in=:ti, tokens_out=:to, cache_hits=:ch WHERE id=:id'
+        )->execute([
+            ':st' => 'concluido',
+            ':m'  => json_encode($marcadores, JSON_UNESCAPED_UNICODE),
+            ':r'  => json_encode($resposta, JSON_UNESCAPED_UNICODE),
+            ':ti' => $exp['tokens_in'],
+            ':to' => $exp['tokens_out'],
+            ':ch' => $exp['cache_hits'],
+            ':id' => $exameId,
+        ]);
+    }
 
     responder($resposta);
 }
@@ -421,14 +466,6 @@ function analisarExplicacao(PDO $db, string $ipHash): void {
         responder(['ok' => false, 'resposta' => 'Não foi possível responder agora. Tente novamente.'], 502);
     }
 
-    $db->prepare(
-        'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
-         VALUES (:ip, :tipo, :status, :r, :ti, :to)'
-    )->execute([
-        ':ip' => $ipHash, ':tipo' => 'explicar', ':status' => 'concluido',
-        ':r'  => $r['texto'], ':ti' => $r['tokens_in'], ':to' => $r['tokens_out'],
-    ]);
-
     $fontes = array_values(array_unique(array_filter(array_map(fn($c) => $c['titulo'], $contexto))));
     $resp = [
         'ok'       => true,
@@ -441,6 +478,32 @@ function analisarExplicacao(PDO $db, string $ipHash): void {
     if (getenv('APP_DEBUG') === 'true') {
         $resp['_custo'] = ['tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out']];
     }
+
+    // Persistência: histórico encriptado se logado+verificado, senão telemetria.
+    $u = function_exists('sessaoAtual') ? sessaoAtual() : null;
+    if ($u && !empty($u['email_verificado']) && historicoAtivo()) {
+        try {
+            $titulo = 'Explicar: ' . mb_substr($pergunta, 0, 100);
+            $resumo = $marcador ? ($marcador['nome_canonico'] ?? '') : mb_substr($pergunta, 0, 120);
+            exameSalvar(
+                (int) $u['id'], 'explicar', $titulo, $resumo,
+                json_encode(['pergunta' => $pergunta], JSON_UNESCAPED_UNICODE),
+                json_encode($resp, JSON_UNESCAPED_UNICODE),
+                ['tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out']]
+            );
+        } catch (\Throwable $e) {
+            logRml('error', 'historico_salvar_falhou', ['erro' => $e->getMessage(), 'uid' => $u['id']]);
+        }
+    } else {
+        $db->prepare(
+            'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
+             VALUES (:ip, :tipo, :status, :r, :ti, :to)'
+        )->execute([
+            ':ip' => $ipHash, ':tipo' => 'explicar', ':status' => 'concluido',
+            ':r'  => $r['texto'], ':ti' => $r['tokens_in'], ':to' => $r['tokens_out'],
+        ]);
+    }
+
     responder($resp);
 }
 
@@ -562,13 +625,33 @@ function responderImagem(PDO $db, string $ipHash, string $laudoTexto, array $ima
 
     // LGPD: NÃO persistimos o laudo/imagem nem a explicação derivada (pode conter achados do
     // paciente). Gravamos só o evento de uso (sem conteúdo) p/ métricas/tokens.
-    $db->prepare(
-        'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
-         VALUES (:ip, :tipo, :status, :r, :ti, :to)'
-    )->execute([
-        ':ip' => $ipHash, ':tipo' => 'imagem', ':status' => 'concluido', ':r' => '',
-        ':ti' => $r['tokens_in'], ':to' => $r['tokens_out'],
-    ]);
+    // No histórico do usuário (F4), também só guardamos METADADO sem conteúdo clínico:
+    // o título do exame e um aviso — abrir não mostra nada além disso (decisão LGPD).
+    $u = function_exists('sessaoAtual') ? sessaoAtual() : null;
+    if ($u && !empty($u['email_verificado']) && historicoAtivo()) {
+        try {
+            $tituloHist = trim((string) ($dados['titulo_exame'] ?? 'Exame de imagem'));
+            $resumoPub  = $conteudo === 'filme'
+                ? 'Descrição educativa não-diagnóstica (conteúdo não fica salvo)'
+                : 'Explicação do laudo (conteúdo não fica salvo por LGPD)';
+            exameSalvar(
+                (int) $u['id'], 'imagem', $tituloHist, $resumoPub,
+                json_encode(['nota' => 'sem_conteudo_por_lgpd', 'conteudo' => $conteudo], JSON_UNESCAPED_UNICODE),
+                json_encode(['ok' => true, 'tipo' => 'imagem', 'nota' => 'Conteúdo desta análise não fica salvo por LGPD.'], JSON_UNESCAPED_UNICODE),
+                ['tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out']]
+            );
+        } catch (\Throwable $e) {
+            logRml('error', 'historico_salvar_falhou', ['erro' => $e->getMessage(), 'uid' => $u['id']]);
+        }
+    } else {
+        $db->prepare(
+            'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
+             VALUES (:ip, :tipo, :status, :r, :ti, :to)'
+        )->execute([
+            ':ip' => $ipHash, ':tipo' => 'imagem', ':status' => 'concluido', ':r' => '',
+            ':ti' => $r['tokens_in'], ':to' => $r['tokens_out'],
+        ]);
+    }
 
     $resp = [
         'ok'               => true,
@@ -621,18 +704,6 @@ function analisarSintomas(PDO $db, string $ipHash): void {
         responder(['ok' => false, 'resposta' => 'Não foi possível analisar agora. Tente novamente.'], 502);
     }
 
-    $db->prepare(
-        'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
-         VALUES (:ip, :tipo, :status, :r, :ti, :to)'
-    )->execute([
-        ':ip'     => $ipHash,
-        ':tipo'   => 'sintomas',
-        ':status' => 'concluido',
-        ':r'      => $r['texto'],
-        ':ti'     => $r['tokens_in'],
-        ':to'     => $r['tokens_out'],
-    ]);
-
     $resp = [
         'ok'       => true,
         'tipo'     => 'sintomas',
@@ -642,5 +713,37 @@ function analisarSintomas(PDO $db, string $ipHash): void {
     if (getenv('APP_DEBUG') === 'true') {
         $resp['_custo'] = ['tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out']];
     }
+
+    // Persistência: histórico encriptado se logado+verificado, senão telemetria sem conteúdo.
+    $u = function_exists('sessaoAtual') ? sessaoAtual() : null;
+    if ($u && !empty($u['email_verificado']) && historicoAtivo()) {
+        try {
+            $titulo = 'Sintomas — ' . date('d/m/Y H:i');
+            $resumo = mb_substr(preg_replace('/\s+/', ' ', $sintomas), 0, 120);
+            exameSalvar(
+                (int) $u['id'], 'sintomas', $titulo, $resumo,
+                json_encode([
+                    'sintomas' => $sintomas, 'duracao' => $duracao, 'intensidade' => $intensidade,
+                ], JSON_UNESCAPED_UNICODE),
+                json_encode($resp, JSON_UNESCAPED_UNICODE),
+                ['tokens_in' => $r['tokens_in'], 'tokens_out' => $r['tokens_out']]
+            );
+        } catch (\Throwable $e) {
+            logRml('error', 'historico_salvar_falhou', ['erro' => $e->getMessage(), 'uid' => $u['id']]);
+        }
+    } else {
+        $db->prepare(
+            'INSERT INTO exames (ip_hash, tipo, status, resultado, tokens_in, tokens_out)
+             VALUES (:ip, :tipo, :status, :r, :ti, :to)'
+        )->execute([
+            ':ip'     => $ipHash,
+            ':tipo'   => 'sintomas',
+            ':status' => 'concluido',
+            ':r'      => $r['texto'],
+            ':ti'     => $r['tokens_in'],
+            ':to'     => $r['tokens_out'],
+        ]);
+    }
+
     responder($resp);
 }
