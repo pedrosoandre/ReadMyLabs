@@ -1148,7 +1148,28 @@ function renderImagem(d){
   const bCls=marc?'urg-vermelho':'urg-amarelo';
   const bTit=marc?'Procure atendimento com prioridade — marcações de profissional detectadas':'Descrição educativa — não é diagnóstico';
   const prio=marc?`<div class="padrao-acao" style="color:var(--high);font-weight:700;margin-top:10px;padding:10px 12px;background:rgba(255,125,138,.08);border-left:3px solid var(--high);border-radius:6px">⚠ Esta imagem tem marcações feitas por um profissional (réguas, setas, círculos). Isso indica uma região destacada pelo radiologista para avaliação. <u>Procure o laudo escrito e seu médico COM PRIORIDADE</u> — não posso te dizer o que a marcação significa.</div>`:'';
-  let html = ehFilme
+
+  // Banner de qualidade técnica da imagem (NÃO-clínico). Vem ANTES do conteudo para o
+  // usuário entender que a captura tem problema antes de ler a descrição.
+  let html = '';
+  if(ehFilme && d.qualidade_imagem && d.qualidade_imagem!=='ok' && Array.isArray(d.problemas_imagem) && d.problemas_imagem.length){
+    const qIncompleta=d.qualidade_imagem==='incompleta';
+    const qTit=qIncompleta?'A foto/digitalização parece incompleta':'A foto/digitalização tem problemas técnicos';
+    const qInstr=qIncompleta
+      ?'Reenvie o arquivo completo (todas as páginas) ou peça uma nova cópia no serviço de imagem.'
+      :'Tire a foto novamente com mais luz, sem reflexo e enquadrando o filme inteiro — ou peça uma nova cópia.';
+    html += `<div style="margin-bottom:14px;padding:12px 14px;border-radius:11px;background:rgba(255,193,71,.08);border:1px solid rgba(255,193,71,.32);border-left:3px solid #ffc147">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ffc147" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="flex:1">
+          <div style="font-weight:700;color:#ffc147;font-size:13.5px;margin-bottom:4px">${qTit}</div>
+          <div style="font-size:13px;color:var(--muted);line-height:1.55">Problemas detectados: <strong style="color:var(--text)">${d.problemas_imagem.map(esc).join(', ')}</strong>. ${esc(qInstr)} A análise abaixo pode estar prejudicada por isso.</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html += ehFilme
     ? `<div class="conclusao ${bCls}"><div class="conclusao-header"><div class="urg-dot"></div><span class="conclusao-urg">${bTit}</span></div><div class="conclusao-body"><div class="conclusao-texto">${esc(d.aviso||'Esta é uma descrição geral da imagem. Ela NÃO identifica doenças nem confirma que está tudo bem — o laudo do radiologista é o que vale.')}</div>${prio}</div></div>`
     : '';
   html+=`<div class="padrao-item" style="margin-top:12px"><div class="padrao-titulo" style="font-size:15px">${esc(d.titulo_exame||'Exame de imagem')}</div>`;
@@ -1166,7 +1187,7 @@ function renderImagem(d){
         <div style="flex:1">
           <div style="font-weight:700;color:var(--text);font-size:14.5px;margin-bottom:4px">Próximo passo: envie o laudo escrito</div>
           <div style="font-size:13.5px;color:var(--muted);line-height:1.55">${esc(d.texto_dica_laudo||'')}</div>
-          <button onclick="document.getElementById('fileInput').click();window.scrollTo({top:document.getElementById('analisar').offsetTop-40,behavior:'smooth'})" class="btn btn-primary" style="margin-top:12px;font-size:13.5px;padding:9px 16px">
+          <button id="btnAnexarLaudo" class="btn btn-primary" style="margin-top:12px;font-size:13.5px;padding:9px 16px" aria-label="Anexar o laudo escrito do exame">
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
             Anexar o laudo escrito
           </button>
@@ -1183,6 +1204,20 @@ function renderImagem(d){
   imgResult.innerHTML=html;
   imgResult.classList.add('show');
   imgResult.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  // Wire-up + analytics do CTA "anexar laudo" (só existe no caminho filme).
+  if(ehFilme&&d.dica_laudo){
+    const evtParams={sinais_marcacao:!!d.sinais_marcacao,titulo_exame:String(d.titulo_exame||'').slice(0,80)};
+    if(window.rml&&rml.event) rml.event('imagem_sem_laudo_visto',evtParams);
+    const btnAnexar=document.getElementById('btnAnexarLaudo');
+    if(btnAnexar){
+      btnAnexar.onclick=function(){
+        if(window.rml&&rml.event) rml.event('dica_laudo_clicado',evtParams);
+        document.getElementById('fileInput').click();
+        window.scrollTo({top:document.getElementById('analisar').offsetTop-40,behavior:'smooth'});
+      };
+    }
+  }
 }
 
 // ---------- utils ----------

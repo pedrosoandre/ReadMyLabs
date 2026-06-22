@@ -43,31 +43,39 @@ function vetorGuardar(PDO $db, string $refTipo, int $refId, array $vetor, string
 
 /**
  * Busca os topK itens mais similares ao vetor da query (já normalizado).
- * Opcionalmente filtra marcadores/chunks por categoria.
+ * Opcionalmente filtra marcadores/chunks por categoria e/ou domínio.
  *
  * @param array  $queryVetorNorm vetor da query, já normalizado
  * @param string $refTipo 'marcador' | 'chunk'
  * @param string|null $categoria filtra pela categoria do marcador (opcional)
+ * @param string|null $dominio   'lab' | 'radio' — filtra por domínio (opcional).
+ *                               Default null = comportamento legado (sem filtro).
  * @return array<int,array{ref_id:int, score:float}> ordenado por score desc
  */
-function vetorBuscar(PDO $db, array $queryVetorNorm, string $refTipo, int $topK = 5, ?string $categoria = null): array {
-    // Junta com a tabela do ref para permitir filtro por categoria.
+function vetorBuscar(PDO $db, array $queryVetorNorm, string $refTipo, int $topK = 5, ?string $categoria = null, ?string $dominio = null): array {
+    // Junta com a tabela do ref para permitir filtro por categoria e domínio.
+    // Domínio passa a usar JOIN obrigatório (em vez de LEFT JOIN) p/ chunks quando
+    // filtrado — só vale chunk que existe na sua tabela e tem o domínio pedido.
     if ($refTipo === 'marcador') {
         $sql = 'SELECT v.ref_id, v.embedding
                   FROM kb_vetores v
                   JOIN kb_marcadores k ON k.id = v.ref_id
                  WHERE v.ref_tipo = :t';
         if ($categoria !== null) $sql .= ' AND k.categoria = :cat';
+        if ($dominio !== null)   $sql .= ' AND k.dominio = :dom';
     } else {
-        $sql = 'SELECT v.ref_id, v.embedding
-                  FROM kb_vetores v
-             LEFT JOIN kb_chunks k ON k.id = v.ref_id
-                 WHERE v.ref_tipo = :t';
+        $join = $dominio !== null ? 'JOIN' : 'LEFT JOIN';
+        $sql  = "SELECT v.ref_id, v.embedding
+                   FROM kb_vetores v
+                   $join kb_chunks k ON k.id = v.ref_id
+                  WHERE v.ref_tipo = :t";
         if ($categoria !== null) $sql .= ' AND k.titulo LIKE :cat';
+        if ($dominio !== null)   $sql .= ' AND k.dominio = :dom';
     }
 
     $params = [':t' => $refTipo];
     if ($categoria !== null) $params[':cat'] = ($refTipo === 'marcador') ? $categoria : "%$categoria%";
+    if ($dominio   !== null) $params[':dom'] = $dominio;
 
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
