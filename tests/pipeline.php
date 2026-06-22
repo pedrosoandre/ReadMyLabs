@@ -11,6 +11,10 @@ require "$base/loads_env.php"; loadEnv("$base/.env");
 require "$base/db.php";
 require "$base/lib/claude.php";
 require "$base/lib/referencia.php";
+// RAG (radio) — testa que os arquivos foram deployados e funcionam mesmo sem Voyage key.
+if (is_file("$base/rag/lib/voyage.php"))   require_once "$base/rag/lib/voyage.php";
+if (is_file("$base/rag/lib/vetor.php"))    require_once "$base/rag/lib/vetor.php";
+if (is_file("$base/rag/lib/resolver.php")) require_once "$base/rag/lib/resolver.php";
 $db = db();
 
 $pass = 0; $fail = 0;
@@ -36,6 +40,45 @@ chk('vazio: zero marcadores', count(classificarExame('', null, null, $db)) === 0
 // --- DB: ENUM exames.tipo aceita 'imagem' (migração aplicada) ---
 $col = $db->query("SHOW COLUMNS FROM exames LIKE 'tipo'")->fetch(PDO::FETCH_ASSOC);
 chk("db: exames.tipo aceita 'imagem'", strpos($col['Type'] ?? '', "'imagem'") !== false);
+
+// --- DB: schema RAG radio aplicado (coluna `dominio` em kb_marcadores e kb_chunks) ---
+$colM = $db->query("SHOW COLUMNS FROM kb_marcadores LIKE 'dominio'")->fetch(PDO::FETCH_ASSOC);
+chk('db: kb_marcadores.dominio existe', !empty($colM));
+chk('db: kb_marcadores.dominio aceita radio', strpos($colM['Type'] ?? '', "'radio'") !== false);
+$colC = $db->query("SHOW COLUMNS FROM kb_chunks LIKE 'dominio'")->fetch(PDO::FETCH_ASSOC);
+chk('db: kb_chunks.dominio existe', !empty($colC));
+
+// --- DB: seed radio populou 110 termos curados ---
+$nRadio = (int) $db->query("SELECT COUNT(*) FROM kb_marcadores WHERE dominio='radio'")->fetchColumn();
+chk("db: kb_marcadores radio populou (>=110, atual=$nRadio)", $nRadio >= 110);
+
+// --- DB: legacy preservado (dominio='lab' default) ---
+$nLab = (int) $db->query("SELECT COUNT(*) FROM kb_marcadores WHERE dominio='lab'")->fetchColumn();
+chk("db: kb_marcadores lab preservado (>=80, atual=$nLab)", $nLab >= 80);
+
+// --- Funções RAG radio carregadas ---
+chk('rag: recuperarContextoRadio existe', function_exists('recuperarContextoRadio'));
+chk('rag: vetorBuscar existe', function_exists('vetorBuscar'));
+chk('rag: ragAtivo existe', function_exists('ragAtivo'));
+
+// --- Falha-para-desligado: sem VOYAGE_API_KEY, recuperarContextoRadio devolve [] ---
+// (Não pode lançar erro nem retornar lixo — é o ponto da arquitetura.)
+$voyage = getenv('VOYAGE_API_KEY');
+if ($voyage) {
+    echo "INFO  VOYAGE_API_KEY presente — recuperarContextoRadio pode chamar API real\n";
+} else {
+    $trechos = recuperarContextoRadio($db, "Ressonancia do cranio com microangiopatia leve.", 6);
+    chk('rag-radio: sem VOYAGE_API_KEY, recuperarContextoRadio devolve []', $trechos === []);
+}
+
+// --- Vetor: vetorBuscar com filtro de dominio não-quebra (mesmo sem vetores) ---
+// (Sem vetores ainda; basta verificar que SQL com JOIN não dá erro)
+try {
+    $hits = vetorBuscar($db, array_fill(0, 1024, 0.0), 'marcador', 3, null, 'radio');
+    chk('rag-radio: vetorBuscar com dominio=radio não lança erro', is_array($hits));
+} catch (\Throwable $e) {
+    chk("rag-radio: vetorBuscar com dominio=radio não lança erro (erro: {$e->getMessage()})", false);
+}
 
 // --- Full: conectividade real com o Claude (custa ~1 chamada) ---
 if ($full) {
