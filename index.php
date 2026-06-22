@@ -570,7 +570,7 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
       </div>
       <div class="foot-col"><h5>Produto</h5><a href="#como">Como funciona</a><a href="#exames">Exames</a><a href="#sintomas">Sintomas</a><a href="#analisar">Analisar exame</a></div>
       <div class="foot-col"><h5>Empresa</h5><a href="#parcerias">Parcerias</a><a href="#parcerias">Laboratórios</a><a href="#">Sobre</a><a href="#">Contato</a></div>
-      <div class="foot-col"><h5>Legal</h5><a href="#">Termos de uso</a><a href="#">Privacidade</a><a href="#">LGPD</a></div>
+      <div class="foot-col"><h5>Legal</h5><a href="#">Termos de uso</a><a href="/politica-de-privacidade.php">Privacidade</a><a href="/politica-de-privacidade.php#s9">LGPD</a></div>
     </div>
     <div class="foot-bot">
       <div>© 2026 ReadMyLabs. Todos os direitos reservados.</div>

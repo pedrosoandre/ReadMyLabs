@@ -76,7 +76,10 @@ authRenderTopo('Meus exames');
 <?php endif; ?>
 
 <a href="/" class="btn btn-ghost btn-block" style="margin-top:18px">Voltar ao app</a>
-<div class="auth-foot"><a href="/conta.php">Minha conta</a></div>
+<div class="auth-foot">
+  <a href="/conta.php">Minha conta</a> ·
+  <a href="/politica-de-privacidade.php">Política de Privacidade</a>
+</div>
 
 <!-- Modal de visualização -->
 <div id="histModal" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px">

@@ -72,7 +72,10 @@ $token = csrfTokenAtual();
   </div>
   <label class="check">
     <input type="checkbox" name="termos" value="1" required>
-    <span>Concordo com a guarda dos meus dados de conta (e-mail, senha hash, data) conforme a Política de Privacidade. Análises de exame seguem sem persistência.</span>
+    <span>Concordo com a guarda dos meus dados de conta (e-mail, hash da senha, data) e com o
+    armazenamento das minhas análises no histórico, <strong>criptografadas em repouso (AES-256)</strong>,
+    conforme a <a href="/politica-de-privacidade.php" target="_blank" rel="noopener" style="color:var(--cyan)">Política de Privacidade</a>.
+    Posso apagar análises ou a conta a qualquer momento.</span>
   </label>
   <button class="btn btn-primary btn-block" type="submit">Criar conta</button>
 </form>

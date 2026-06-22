@@ -69,7 +69,10 @@ authRenderTopo('Minha conta', $banner[0] ?? null, $banner[1] ?? 'info');
 </div>
 
 <a href="/" class="btn btn-primary btn-block">Voltar para o app</a>
-<div class="auth-foot"><a href="/sair.php">Sair da conta</a></div>
+<div class="auth-foot">
+  <a href="/sair.php">Sair da conta</a> ·
+  <a href="/politica-de-privacidade.php">Política de Privacidade</a>
+</div>
 
 <details style="margin-top:24px;padding:14px;border:1px solid rgba(255,125,138,.22);border-radius:13px;background:rgba(255,125,138,.04)">
   <summary style="cursor:pointer;color:#ff7d8a;font-weight:600;font-size:14px">Apagar minha conta</summary>
