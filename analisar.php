@@ -623,6 +623,13 @@ function responderImagem(PDO $db, string $ipHash, string $laudoTexto, array $ima
             : 'Descrição educativa e não-diagnóstica. A ausência de informação aqui NÃO é boa notícia — procure o laudo do radiologista e seu médico.';
     }
 
+    // CTA acionável no FILME: explicita que o caminho útil é enviar o LAUDO escrito.
+    // Mantém o "não-diagnóstico" intacto — só orienta a próxima ação.
+    $dicaLaudo = $conteudo === 'filme';
+    $textoDicaLaudo = $sinaisMarc
+        ? 'Tem o laudo escrito (PDF que acompanha o exame)? Anexe ele aqui — eu te explico o que o radiologista descreveu, em português claro. Como a imagem tem marcações de profissional, procure o laudo COM PRIORIDADE.'
+        : 'Tem o laudo escrito (PDF que acompanha o exame)? Anexe ele aqui — eu te explico o que o radiologista descreveu, em português claro. Só com o laudo eu consigo dar uma explicação clínica de verdade.';
+
     // LGPD: NÃO persistimos o laudo/imagem nem a explicação derivada (pode conter achados do
     // paciente). Gravamos só o evento de uso (sem conteúdo) p/ métricas/tokens.
     // No histórico do usuário (F4), também só guardamos METADADO sem conteúdo clínico:
@@ -664,6 +671,8 @@ function responderImagem(PDO $db, string $ipHash, string $laudoTexto, array $ima
         'perguntas_medico' => $perguntas,
         'sinais_marcacao'  => $sinaisMarc,
         'aviso'            => $aviso,
+        'dica_laudo'       => $dicaLaudo,
+        'texto_dica_laudo' => $dicaLaudo ? $textoDicaLaudo : '',
         'nota'             => $conteudo === 'filme'
             ? 'Descrição educativa e NÃO-diagnóstica gerada por IA. Vale o laudo do radiologista e a avaliação do seu médico.'
             : 'Explicação informativa do laudo gerada por IA. Não substitui avaliação de um profissional de saúde.',

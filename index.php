@@ -368,6 +368,11 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
             <div class="dz-file" id="dzFile"><span class="fi"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span id="dzName">exame.pdf</span></div>
           </div>
           <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" hidden />
+          <div class="dica-laudo" style="margin-top:14px;padding:12px 14px;border-radius:11px;background:rgba(95,227,255,.06);border:1px solid rgba(95,227,255,.22);font-size:13px;color:var(--muted);line-height:1.55">
+            <strong style="color:var(--cyan)">É raio-x, ressonância ou tomografia?</strong>
+            Envie o <strong style="color:var(--text)">laudo escrito</strong> (PDF que vem junto) para uma explicação clínica em linguagem simples.
+            Se enviar só a imagem do exame, posso descrever a anatomia, mas não faço diagnóstico.
+          </div>
           <div id="rc-exame" style="margin:14px 0"></div>
           <div class="uc-foot">
             <button class="btn btn-primary" id="analyzeBtn">Analisar exame</button>
@@ -1141,14 +1146,35 @@ function renderImagem(d){
   const marc=ehFilme&&!!d.sinais_marcacao; // triagem de urgência (marcações = sinal objetivo, não diagnóstico)
   const lista=arr=>(arr&&arr.length)?`<ul class="sym-list" style="margin-top:8px">${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'';
   const bCls=marc?'urg-vermelho':'urg-amarelo';
-  const bTit=marc?'Procure atendimento com prioridade':'Descrição educativa — não é diagnóstico';
-  const prio=marc?`<div class="padrao-acao" style="color:var(--high);font-weight:600;margin-top:8px">⚠ Esta imagem tem marcações feitas por um profissional — leve o laudo e este exame ao seu médico o quanto antes.</div>`:'';
+  const bTit=marc?'Procure atendimento com prioridade — marcações de profissional detectadas':'Descrição educativa — não é diagnóstico';
+  const prio=marc?`<div class="padrao-acao" style="color:var(--high);font-weight:700;margin-top:10px;padding:10px 12px;background:rgba(255,125,138,.08);border-left:3px solid var(--high);border-radius:6px">⚠ Esta imagem tem marcações feitas por um profissional (réguas, setas, círculos). Isso indica uma região destacada pelo radiologista para avaliação. <u>Procure o laudo escrito e seu médico COM PRIORIDADE</u> — não posso te dizer o que a marcação significa.</div>`:'';
   let html = ehFilme
     ? `<div class="conclusao ${bCls}"><div class="conclusao-header"><div class="urg-dot"></div><span class="conclusao-urg">${bTit}</span></div><div class="conclusao-body"><div class="conclusao-texto">${esc(d.aviso||'Esta é uma descrição geral da imagem. Ela NÃO identifica doenças nem confirma que está tudo bem — o laudo do radiologista é o que vale.')}</div>${prio}</div></div>`
     : '';
   html+=`<div class="padrao-item" style="margin-top:12px"><div class="padrao-titulo" style="font-size:15px">${esc(d.titulo_exame||'Exame de imagem')}</div>`;
   if(d.resumo_leigo) html+=`<div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6;margin-top:6px">${esc(d.resumo_leigo)}</div>`;
   html+=`</div>`;
+
+  // CTA acionável no caminho FILME: oferece a próxima ação útil (anexar o laudo escrito).
+  // Sem cruzar a linha: não diz "está quebrado", diz "envie o laudo que eu te explico o que o médico viu".
+  if(ehFilme&&d.dica_laudo){
+    html+=`<div style="margin-top:14px;padding:16px;border-radius:13px;background:linear-gradient(135deg,rgba(124,131,255,.12),rgba(95,227,255,.08));border:1px solid rgba(124,131,255,.32)">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--indigo),var(--cyan));display:grid;place-items:center;flex-shrink:0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text);font-size:14.5px;margin-bottom:4px">Próximo passo: envie o laudo escrito</div>
+          <div style="font-size:13.5px;color:var(--muted);line-height:1.55">${esc(d.texto_dica_laudo||'')}</div>
+          <button onclick="document.getElementById('fileInput').click();window.scrollTo({top:document.getElementById('analisar').offsetTop-40,behavior:'smooth'})" class="btn btn-primary" style="margin-top:12px;font-size:13.5px;padding:9px 16px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Anexar o laudo escrito
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }
+
   if(!ehFilme&&d.tranquilizador&&d.tranquilizador.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">O que parece tranquilo</div>${lista(d.tranquilizador)}</div>`;
   if(!ehFilme&&d.merece_atencao&&d.merece_atencao.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">O que merece atenção</div>${lista(d.merece_atencao)}</div>`;
   if(d.perguntas_medico&&d.perguntas_medico.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">Perguntas para levar ao médico</div>${lista(d.perguntas_medico)}</div>`;
