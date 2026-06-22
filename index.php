@@ -1,4 +1,11 @@
-<?php require_once __DIR__ . '/lib/analytics.php'; ?>
+<?php
+require_once __DIR__ . '/loads_env.php';
+require_once __DIR__ . '/lib/analytics.php';
+loadEnv();
+// IP whitelist: rendered server-side pra evitar corrida com o fetch de auth-status.
+$_rml_ip_wl = array_values(array_filter(array_map('trim', explode(',', (string) (getenv('IP_WHITELIST') ?: '')))));
+$_rml_ip_ok = $_rml_ip_wl && in_array($_SERVER['REMOTE_ADDR'] ?? '', $_rml_ip_wl, true);
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -632,6 +639,9 @@ const RAG_HABILITADO=false;
 // abra a URL com ?dev=TOKEN (mesmo TOKEN do DEV_BYPASS_TOKEN no .env do servidor):
 // o front pula o paywall e o servidor pula o limite de IP (só se o token bater).
 const DEV = (new URLSearchParams(location.search)).get('dev') || '';
+// IP whitelist: rendered server-side (PHP). Quando true, esse IP está na lista
+// IP_WHITELIST do .env do servidor — pula paywall localmente, servidor pula rate-limit/cota.
+const IP_WHITELISTED = <?= json_encode((bool) $_rml_ip_ok) ?>;
 let rcExame=null, rcSintomas=null, rcExplicar=null;
 function rcInit(){
   if(!window.grecaptcha||!grecaptcha.render) return false;
@@ -650,7 +660,7 @@ function rcToken(id){ try{ return (window.grecaptcha&&id!==null)?grecaptcha.getR
 const PAYWALL_ATIVO=false;
 const PW_KEY='rml_free_usada';
 const paywall=document.getElementById('paywall');
-function pwUsada(){if(!PAYWALL_ATIVO||DEV)return false;try{return localStorage.getItem(PW_KEY)==='1'}catch(e){return false}}
+function pwUsada(){if(!PAYWALL_ATIVO||DEV||IP_WHITELISTED)return false;try{return localStorage.getItem(PW_KEY)==='1'}catch(e){return false}}
 function pwMarcar(){if(!PAYWALL_ATIVO)return;try{localStorage.setItem(PW_KEY,'1')}catch(e){}}
 function pwAbrir(){paywall.classList.add('show');document.body.style.overflow='hidden'}
 function pwFechar(){paywall.classList.remove('show');document.body.style.overflow=''}

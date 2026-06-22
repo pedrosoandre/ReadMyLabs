@@ -125,6 +125,13 @@ $usuario   = function_exists('sessaoAtual') ? sessaoAtual() : null;
 $devToken  = getenv('DEV_BYPASS_TOKEN') ?: '';
 $devBypass = ($devToken !== '' && ($_POST['dev'] ?? '') === $devToken);
 
+// IP whitelist: IPs em IP_WHITELIST (vírgulas) no .env pulam rate-limit/cota
+// permanentemente (sem precisar do ?dev= na URL). Útil pro IP fixo do dev/owner.
+// Falha-para-desligado: var vazia = lista vazia = ninguém é bypassed.
+$ipWhitelist = array_values(array_filter(array_map('trim', explode(',', (string) (getenv('IP_WHITELIST') ?: '')))));
+$ipBypass    = $ipWhitelist && in_array($_SERVER['REMOTE_ADDR'] ?? '', $ipWhitelist, true);
+$devBypass   = $devBypass || $ipBypass;
+
 // Logado mas sem confirmar e-mail: bloqueia (mensagem clara, sem consumir cota).
 if ($usuario && !$usuario['email_verificado'] && !$devBypass) {
     responder([
