@@ -14,7 +14,10 @@
 //   novos" de graça; a chave passa a ser o /64, não o endereço completo.
 
 /** Faixas publicadas da Cloudflare (v4+v6). Fonte: cloudflare.com/ips
- *  (mudam muito raramente). */
+ *  (mudam muito raramente). SNAPSHOT: 2026-07-10 — reconferir em cloudflare.com/ips
+ *  ou api.cloudflare.com/client/v4/ips periodicamente. Se uma faixa CF nova não
+ *  estiver aqui, o app usa o IP DA BORDA como chave (over-block daquela borda,
+ *  nunca bypass). */
 function faixasCloudflare(): array {
     return [
         // IPv4
@@ -26,6 +29,22 @@ function faixasCloudflare(): array {
         '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
         '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
     ];
+}
+
+/** Desmapeia IPv4-em-IPv6 (::ffff:1.2.3.4) para o IPv4 puro. Sem isso, o /64
+ *  colapsaria TODO endereço mapeado para "::" (o IPv4 fica nos bytes 13-16, fora
+ *  do prefixo /64) e o match de faixa Cloudflare falharia (16 bytes vs 4). Cobre
+ *  as duas grafias (dotted e hex) via representação binária. */
+function desmapearIpv4(string $ip): string {
+    if ($ip === '') return $ip;
+    $bin = @inet_pton($ip);
+    if ($bin !== false && strlen($bin) === 16
+        && substr($bin, 0, 10) === str_repeat("\0", 10)
+        && substr($bin, 10, 2) === "\xff\xff") {
+        $v4 = @inet_ntop(substr($bin, 12, 4));
+        if ($v4 !== false) return $v4;
+    }
+    return $ip;
 }
 
 /** $ip pertence ao CIDR $cidr? Compara os bits do prefixo (v4 e v6). */
@@ -55,11 +74,11 @@ function ipEmFaixa(string $ip, string $cidr): bool {
 /** IP real do visitante (Cloudflare-aware, SEM colapsar /64). Use para match
  *  exato de whitelist. String vazia se não houver REMOTE_ADDR (ex.: CLI). */
 function ipClienteReal(): string {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $ip = desmapearIpv4($_SERVER['REMOTE_ADDR'] ?? '');
     if (!empty($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($ip, FILTER_VALIDATE_IP)) {
         foreach (faixasCloudflare() as $cidr) {
             if (ipEmFaixa($ip, $cidr)) {
-                $real = trim($_SERVER['HTTP_CF_CONNECTING_IP']);
+                $real = desmapearIpv4(trim($_SERVER['HTTP_CF_CONNECTING_IP']));
                 if (filter_var($real, FILTER_VALIDATE_IP)) $ip = $real;
                 break;
             }
@@ -73,6 +92,7 @@ function ipClienteReal(): string {
  *  certo). '' -> 'cli' (preserva o hash do caminho CLI). */
 function normalizarChaveIp(string $ip): string {
     if ($ip === '') return 'cli';
+    $ip = desmapearIpv4($ip);
     if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
         $bin = @inet_pton($ip);
         if ($bin !== false && strlen($bin) === 16) {

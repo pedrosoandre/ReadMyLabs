@@ -73,6 +73,32 @@ function logRml(string $level, string $msg, array $ctx = []): void {
     error_log(json_encode($entry, JSON_UNESCAPED_UNICODE));
 }
 
+/** Lê o contador do dia do arquivo de rate-limit já aberto+travado ($fp). */
+function rlLerContagem($fp, string $hoje): array {
+    rewind($fp);
+    $raw = stream_get_contents($fp);
+    $c = ['data' => $hoje, 'contagem' => 0];
+    if ($raw !== '' && $raw !== false) {
+        $d = json_decode($raw, true);
+        if (is_array($d) && ($d['data'] ?? '') === $hoje) $c = $d;
+    }
+    return $c;
+}
+
+/** Grava o contador in-place no arquivo já travado ($fp), verificando cada passo.
+ *  In-place (não temp+rename) para preservar a exclusão do flock, que é no inode.
+ *  Retorna false em QUALQUER falha — o chamador trata como fail-closed (nega a
+ *  análise), nunca deixa passar sem contabilizar. */
+function rlGravarContagem($fp, array $contagem): bool {
+    $json = json_encode($contagem);
+    if ($json === false) return false;
+    if (!ftruncate($fp, 0)) return false;
+    rewind($fp);
+    $n = fwrite($fp, $json);
+    if ($n === false || $n < strlen($json)) return false;
+    return fflush($fp);
+}
+
 function verificarRecaptcha(string $token, string $secretKey): bool {
     $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
     curl_setopt_array($ch, [
@@ -142,11 +168,15 @@ if ($usuario && !$usuario['email_verificado'] && !$devBypass) {
 }
 
 // Anônimo: rate limit por IP (arquivo + flock). Logado: pulamos para a cota da conta.
-$fpLimite = null;
-$contagem = null;
+// Lock CURTO por design: adquirido só para ler/checar (fase 1) e depois só para
+// incrementar (fase 2). NUNCA é segurado durante a chamada de rede do reCAPTCHA
+// — segurar flock atravessando um curl de ~10s serializaria workers PHP-FPM do
+// mesmo IP e poderia esgotar o pool (DoS de disponibilidade). A janela entre
+// soltar (fase 1) e repegar (fase 2) é fechada por uma RE-checagem sob lock.
+$limiteArq = null;
 $limiteMax = 0;
+$hoje      = date('Y-m-d');
 if (!$usuario) {
-    $hoje      = date('Y-m-d');
     $limiteDir = __DIR__ . '/limite_ip';
     if (!is_dir($limiteDir)) {
         if (!mkdir($limiteDir, 0700, true) && !is_dir($limiteDir)) {
@@ -156,21 +186,17 @@ if (!$usuario) {
     $limiteArq = "$limiteDir/$ipHash.txt";
     $limiteMax = $devBypass ? PHP_INT_MAX : (int) (getenv('LIMITE_DIARIO') ?: 1);
 
-    $fpLimite = fopen($limiteArq, 'c+');
-    if ($fpLimite === false) {
+    $fp = fopen($limiteArq, 'c+');
+    if ($fp === false) {
         logRml('error', 'rate limit: fopen falhou', ['arq' => $limiteArq]);
         responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
     }
-    flock($fpLimite, LOCK_EX);
-    $raw = stream_get_contents($fpLimite);
-    $contagem = ['data' => $hoje, 'contagem' => 0];
-    if ($raw !== '') {
-        $d = json_decode($raw, true);
-        if (is_array($d) && ($d['data'] ?? '') === $hoje) $contagem = $d;
-    }
-    if ($contagem['contagem'] >= $limiteMax) {
-        flock($fpLimite, LOCK_UN);
-        fclose($fpLimite);
+    flock($fp, LOCK_EX);
+    $contagem = rlLerContagem($fp, $hoje);
+    $atingiu  = $contagem['contagem'] >= $limiteMax;
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    if ($atingiu) {
         logRml('warn', 'rate_limit_atingido', ['ip_hash' => $ipHash, 'contagem' => $contagem['contagem']]);
         responder([
             'ok'              => false,
@@ -184,30 +210,28 @@ if (!$usuario) {
 // Validação de entrada
 // ---------------------------------------------------------------
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-    if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
     responder(['ok' => false, 'resposta' => 'Método não permitido.'], 405);
 }
 
 $tipo = $_POST['tipo'] ?? '';
 if (!in_array($tipo, ['exame', 'sintomas', 'explicar', 'imagem'], true)) {
-    if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
     responder(['ok' => false, 'resposta' => 'Tipo de análise inválido.'], 400);
 }
 
-// reCAPTCHA — desativável em dev com REQUIRE_RECAPTCHA=0, off ou false
+// reCAPTCHA — desativável em dev com REQUIRE_RECAPTCHA=0, off ou false.
+// (Sem lock de rate-limit segurado aqui — ver fase 1/2 acima/abaixo.)
 $secretKey    = getenv('RECAPTCHA_SECRET');
 $reqCaptcha   = getenv('REQUIRE_RECAPTCHA');
 $exigeCaptcha = ($reqCaptcha !== 'off' && $reqCaptcha !== '0' && $reqCaptcha !== 'false');
 if ($exigeCaptcha) {
     $token = $_POST['g-recaptcha-response'] ?? '';
     if (!$token || !$secretKey || !verificarRecaptcha($token, $secretKey)) {
-        if ($fpLimite) { flock($fpLimite, LOCK_UN); fclose($fpLimite); }
         logRml('warn', 'captcha_falhou', ['ip_hash' => $ipHash, 'logado' => (bool) $usuario]);
         responder(['ok' => false, 'resposta' => 'Verificação do reCAPTCHA falhou.'], 400);
     }
 }
 
-// Consome 1 do limite após validações.
+// Consome 1 do limite após validações (captcha OK).
 if ($usuario) {
     if (!$devBypass) {
         try {
@@ -226,15 +250,35 @@ if ($usuario) {
             responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
         }
     }
-} elseif ($fpLimite) {
-    if (!$devBypass) {
-        $contagem['contagem']++;
-        ftruncate($fpLimite, 0);
-        rewind($fpLimite);
-        fwrite($fpLimite, json_encode($contagem));
+} elseif ($limiteArq !== null && !$devBypass) {
+    // Fase 2: repega o lock, RECHECA (fecha o TOCTOU aberto ao soltar na fase 1)
+    // e incrementa com escrita verificada. Falha de gravação => fail-CLOSED: nega
+    // a análise (melhor recusar que dar uma análise não-contabilizada).
+    $fp = fopen($limiteArq, 'c+');
+    if ($fp === false) {
+        logRml('error', 'rate limit: fopen (consumo) falhou', ['arq' => $limiteArq]);
+        responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
     }
-    flock($fpLimite, LOCK_UN);
-    fclose($fpLimite);
+    flock($fp, LOCK_EX);
+    $contagem = rlLerContagem($fp, $hoje);
+    if ($contagem['contagem'] >= $limiteMax) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        logRml('warn', 'rate_limit_atingido_corrida', ['ip_hash' => $ipHash]);
+        responder([
+            'ok'              => false,
+            'limite_atingido' => true,
+            'resposta'        => "Você atingiu o limite de $limiteMax análises hoje. Entre na sua conta ou tente amanhã.",
+        ]);
+    }
+    $contagem['contagem']++;
+    $gravou = rlGravarContagem($fp, $contagem);
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    if (!$gravou) {
+        logRml('error', 'rate_limit: gravacao do contador falhou (fail-closed)', ['ip_hash' => $ipHash]);
+        responder(['ok' => false, 'resposta' => 'Erro interno. Tente novamente.'], 500);
+    }
 }
 
 // ---------------------------------------------------------------
