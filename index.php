@@ -1,10 +1,11 @@
 <?php
 require_once __DIR__ . '/loads_env.php';
 require_once __DIR__ . '/lib/analytics.php';
+require_once __DIR__ . '/lib/rede.php';
 loadEnv();
 // IP whitelist: rendered server-side pra evitar corrida com o fetch de auth-status.
 $_rml_ip_wl = array_values(array_filter(array_map('trim', explode(',', (string) (getenv('IP_WHITELIST') ?: '')))));
-$_rml_ip_ok = $_rml_ip_wl && in_array($_SERVER['REMOTE_ADDR'] ?? '', $_rml_ip_wl, true);
+$_rml_ip_ok = $_rml_ip_wl && in_array(ipClienteReal(), $_rml_ip_wl, true);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

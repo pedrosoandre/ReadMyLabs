@@ -4,6 +4,7 @@
 
 require_once __DIR__ . '/loads_env.php';
 require_once __DIR__ . '/auth/lib/sessao.php';
+require_once __DIR__ . '/lib/rede.php';
 loadEnv();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -13,7 +14,7 @@ header('X-Content-Type-Options: nosniff');
 // IP whitelist: mesma var de analisar.php — expõe o flag pro front pular paywall
 // quando o IP estiver na lista. Vazio = lista vazia = ninguém whitelisted.
 $ipWhitelist    = array_values(array_filter(array_map('trim', explode(',', (string) (getenv('IP_WHITELIST') ?: '')))));
-$ipWhitelisted  = $ipWhitelist && in_array($_SERVER['REMOTE_ADDR'] ?? '', $ipWhitelist, true);
+$ipWhitelisted  = $ipWhitelist && in_array(ipClienteReal(), $ipWhitelist, true);
 
 $u = sessaoAtual();
 if (!$u) {

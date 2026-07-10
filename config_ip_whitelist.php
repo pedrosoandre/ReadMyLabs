@@ -5,6 +5,8 @@
 
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit("CLI only.\n"); }
 
+require_once __DIR__ . '/lib/rede.php';
+
 $ip = $argv[1] ?? '';
 if ($ip === '' || !filter_var($ip, FILTER_VALIDATE_IP)) {
     fwrite(STDERR, "uso: php config_ip_whitelist.php <IP>\n");
@@ -56,7 +58,8 @@ if (file_put_contents($envArq, implode("\n", $linhasNovas)) === false) {
 echo "[OK  ] .env atualizado\n";
 
 // Remove o arquivo de rate-limit do IP (libera acesso imediato hoje).
-$hash  = hash('sha256', $ip);
+// Mesma normalização de chave do analisar.php (IPv6 -> /64).
+$hash  = hash('sha256', normalizarChaveIp($ip));
 $arqRL = $root . '/limite_ip/' . $hash . '.txt';
 if (is_file($arqRL)) {
     if (unlink($arqRL)) echo "[RM  ] rate-limit do IP zerado ($arqRL)\n";

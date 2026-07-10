@@ -3,6 +3,7 @@
 // Throttling: 5 falhas em 15min por email_norm OU por ip_hash -> bloqueia.
 
 require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../lib/rede.php';
 
 const RML_AUTH_THROTTLE_JANELA = 900;   // 15min
 const RML_AUTH_THROTTLE_MAX    = 5;
@@ -52,7 +53,7 @@ function criarUsuario(string $email, string $senha, ?string $nome, bool $exigeVe
     if (usuarioPorEmail($emailNorm))                 throw new RuntimeException('Já existe uma conta com este e-mail. Entre ou recupere a senha.');
 
     $hash  = password_hash($senha, PASSWORD_DEFAULT);
-    $ipH   = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? '');
+    $ipH   = hash('sha256', ipCliente());
     $nomeN = $nome !== null ? mb_substr(trim($nome), 0, 120) : null;
     $verif = $exigeVerificacao ? 0 : 1;
 
@@ -67,7 +68,7 @@ function criarUsuario(string $email, string $senha, ?string $nome, bool $exigeVe
 
 function loginThrottlado(string $email): bool {
     $en  = normalizarEmail($email);
-    $ipH = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? '');
+    $ipH = hash('sha256', ipCliente());
     $sql = 'SELECT COUNT(*) FROM auth_tentativas
             WHERE sucesso = 0 AND criada_em > (NOW() - INTERVAL ? SECOND)
               AND (email_norm = ? OR ip_hash = ?)';
@@ -77,7 +78,7 @@ function loginThrottlado(string $email): bool {
 }
 
 function registrarTentativa(string $email, bool $sucesso): void {
-    $ipH = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? '');
+    $ipH = hash('sha256', ipCliente());
     db()->prepare('INSERT INTO auth_tentativas (email_norm, ip_hash, sucesso) VALUES (?, ?, ?)')
         ->execute([normalizarEmail($email), $ipH, $sucesso ? 1 : 0]);
 }

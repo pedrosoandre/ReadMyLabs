@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../db.php';
 require_once __DIR__ . '/../../lib/crypto.php';
+require_once __DIR__ . '/../../lib/rede.php';
 require_once __DIR__ . '/sessao.php';
 
 /**
@@ -49,7 +50,7 @@ function exameSalvar(
     $blob = $marcadoresJson . $sep . $resultadoJson;
     $enc = criptoEncriptar($blob);
 
-    $ip = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? '');
+    $ip = hash('sha256', ipCliente());
     $stmt = db()->prepare(
         'INSERT INTO exames
             (usuario_id, ip_hash, tipo, arquivo_nome, status,

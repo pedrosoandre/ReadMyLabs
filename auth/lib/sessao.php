@@ -4,6 +4,7 @@
 // PHP `$_SESSION` cuida só de CSRF / flash; identidade vem do banco.
 
 require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../lib/rede.php';
 
 const RML_AUTH_COOKIE   = 'rml_sess';
 const RML_AUTH_DIAS     = 30;            // duração do cookie
@@ -25,7 +26,7 @@ function iniciarSessaoUsuario(int $usuarioId): string {
     $db   = db();
     $tok  = bin2hex(random_bytes(32));            // 64 hex
     $exp  = (new DateTime('+' . RML_AUTH_DIAS . ' days'))->format('Y-m-d H:i:s');
-    $ipH  = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? '');
+    $ipH  = hash('sha256', ipCliente());
     $uaH  = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
     $db->prepare(

@@ -16,6 +16,7 @@ require_once __DIR__ . '/loads_env.php';
 loadEnv();
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/lib/rede.php';
 require_once __DIR__ . '/lib/referencia.php';
 require_once __DIR__ . '/lib/claude.php';
 
@@ -118,7 +119,7 @@ function extrairTextoPDF(string $arquivoTmp): string {
 // ---------------------------------------------------------------
 // Identidade: logado (cota por conta) ou anônimo (limite por IP)
 // ---------------------------------------------------------------
-$ipHash    = hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'cli');
+$ipHash    = hash('sha256', ipCliente());
 $usuario   = function_exists('sessaoAtual') ? sessaoAtual() : null;
 
 // Porta de teste: ?dev=TOKEN (POST) com o token do .env pula limites.
@@ -129,7 +130,7 @@ $devBypass = ($devToken !== '' && ($_POST['dev'] ?? '') === $devToken);
 // permanentemente (sem precisar do ?dev= na URL). Útil pro IP fixo do dev/owner.
 // Falha-para-desligado: var vazia = lista vazia = ninguém é bypassed.
 $ipWhitelist = array_values(array_filter(array_map('trim', explode(',', (string) (getenv('IP_WHITELIST') ?: '')))));
-$ipBypass    = $ipWhitelist && in_array($_SERVER['REMOTE_ADDR'] ?? '', $ipWhitelist, true);
+$ipBypass    = $ipWhitelist && in_array(ipClienteReal(), $ipWhitelist, true);
 $devBypass   = $devBypass || $ipBypass;
 
 // Logado mas sem confirmar e-mail: bloqueia (mensagem clara, sem consumir cota).
@@ -153,7 +154,7 @@ if (!$usuario) {
         }
     }
     $limiteArq = "$limiteDir/$ipHash.txt";
-    $limiteMax = $devBypass ? PHP_INT_MAX : (int) (getenv('LIMITE_DIARIO') ?: 3);
+    $limiteMax = $devBypass ? PHP_INT_MAX : (int) (getenv('LIMITE_DIARIO') ?: 1);
 
     $fpLimite = fopen($limiteArq, 'c+');
     if ($fpLimite === false) {
