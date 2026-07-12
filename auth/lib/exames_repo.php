@@ -171,3 +171,72 @@ function exameContar(int $usuarioId): int {
     $stmt->execute([':uid' => $usuarioId]);
     return (int) $stmt->fetchColumn();
 }
+
+/**
+ * Série temporal de cada marcador ao longo dos exames do usuário (Onda 2 — Evolução).
+ * Descriptografa APENAS o histórico do próprio usuário (ownership forçado no WHERE) e
+ * extrai, para cada marcador com valor numérico, uma série {data, valor, status}.
+ * O cálculo da tendência é local (zero token do Claude) — só a redação do resumo,
+ * quando existir, custaria IA. Retorna apenas marcadores com 2+ pontos (o que faz
+ * sentido para uma linha do tempo), ordenados por quantidade de pontos (desc).
+ *
+ * @return array<int,array{nome:string,unidade:string,categoria:string,
+ *   ref_min:?float,ref_max:?float,pontos:array<int,array{data:string,valor:float,status:string}>}>
+ */
+function exameSerieMarcadores(int $usuarioId, int $maxExames = 80): array {
+    if ($usuarioId <= 0) return [];
+    if (!function_exists('criptoDecriptar')) return []; // crypto não carregada — falha-para-desligado
+
+    $maxExames = max(1, min(200, $maxExames));
+    $stmt = db()->prepare(
+        'SELECT criado_em, marcadores_enc, enc_iv, enc_tag
+         FROM exames
+         WHERE usuario_id = :uid AND tipo = :tp AND marcadores_enc IS NOT NULL
+         ORDER BY criado_em ASC, id ASC
+         LIMIT ' . (int) $maxExames
+    );
+    $stmt->execute([':uid' => $usuarioId, ':tp' => 'exame']);
+
+    $sep    = "\x1f\x1eRML_SEP\x1e\x1f";
+    $series = [];
+    foreach ($stmt as $row) {
+        $plain = criptoDecriptar($row['marcadores_enc'], $row['enc_iv'], $row['enc_tag']);
+        if ($plain === null) continue; // integridade quebrada / chave trocada — pula
+        $parts = explode($sep, $plain, 2);
+        $marc  = json_decode($parts[0] ?? '', true);
+        if (!is_array($marc)) continue;
+        $data = (string) $row['criado_em'];
+        foreach ($marc as $m) {
+            if (!is_array($m) || !isset($m['nome'])) continue;
+            $valor = $m['valor'] ?? null;
+            if (!is_numeric($valor)) continue;
+            $nome = (string) $m['nome'];
+            if (!isset($series[$nome])) {
+                $series[$nome] = [
+                    'nome'      => $nome,
+                    'unidade'   => (string) ($m['unidade'] ?? ''),
+                    'categoria' => (string) ($m['categoria'] ?? ''),
+                    'ref_min'   => isset($m['ref_min']) && is_numeric($m['ref_min']) ? (float) $m['ref_min'] : null,
+                    'ref_max'   => isset($m['ref_max']) && is_numeric($m['ref_max']) ? (float) $m['ref_max'] : null,
+                    'pontos'    => [],
+                ];
+            }
+            // mantém a referência/unidade mais recente (última leitura vence)
+            if (isset($m['ref_min']) && is_numeric($m['ref_min'])) $series[$nome]['ref_min'] = (float) $m['ref_min'];
+            if (isset($m['ref_max']) && is_numeric($m['ref_max'])) $series[$nome]['ref_max'] = (float) $m['ref_max'];
+            if (!empty($m['unidade'])) $series[$nome]['unidade'] = (string) $m['unidade'];
+            $series[$nome]['pontos'][] = [
+                'data'   => $data,
+                'valor'  => (float) $valor,
+                'status' => (string) ($m['status'] ?? 'normal'),
+            ];
+        }
+    }
+
+    $out = [];
+    foreach ($series as $s) {
+        if (count($s['pontos']) >= 2) $out[] = $s; // 2+ pontos = tem tendência
+    }
+    usort($out, fn($a, $b) => count($b['pontos']) - count($a['pontos']));
+    return $out;
+}

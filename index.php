@@ -317,6 +317,68 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
   .upload-card,.sym-form,.b2b-card{padding:18px}
   .foot-grid{gap:16px}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   ENTREGA DE RESULTADOS — Ondas 1-4 (áudio, leve-ao-médico,
+   mapa do corpo, card compartilhável, Q&A, streaming reveal).
+   Tudo client-side, custo-zero de token. ══════════════════════ */
+/* barra de ações do resultado (ouvir / compartilhar) */
+.res-toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.res-toolbar .btn{flex:1;min-width:150px;justify-content:center;font-size:14px;padding:11px 16px}
+.res-toolbar .act-btn{flex:1;min-width:140px;justify-content:center}
+.act-btn{font-family:inherit;font-weight:600;font-size:14px;border-radius:12px;cursor:pointer;display:inline-flex;align-items:center;gap:9px;padding:11px 16px;border:1px solid var(--stroke-2);background:var(--panel-2);color:var(--text);transition:transform .16s var(--ease),background .2s,border-color .2s}
+.act-btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.3)}
+.act-btn svg{width:17px;height:17px;stroke:currentColor;fill:none}
+.act-btn.playing{background:linear-gradient(120deg,rgba(124,131,255,.22),rgba(95,227,255,.14));border-color:rgba(124,131,255,.5);color:#fff}
+.act-btn.playing .a-eq{display:inline-flex}
+.act-btn .a-eq{display:none;gap:2px;align-items:flex-end;height:15px}
+.act-btn .a-eq i{width:3px;background:var(--cyan);border-radius:2px;animation:eq 900ms var(--ease) infinite}
+.act-btn .a-eq i:nth-child(1){height:6px;animation-delay:0ms}
+.act-btn .a-eq i:nth-child(2){height:13px;animation-delay:150ms}
+.act-btn .a-eq i:nth-child(3){height:9px;animation-delay:300ms}
+@keyframes eq{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+
+/* mapa do corpo (sistemas afetados) */
+.bodymap{margin-top:16px;border-radius:16px;border:1px solid var(--stroke);background:var(--panel);padding:18px}
+.bodymap-head{font-family:"Space Grotesk";font-weight:600;font-size:15px;margin-bottom:4px}
+.bodymap-sub{font-size:12.5px;color:var(--faint);margin-bottom:14px}
+.bodymap-grid{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+.bodymap svg{width:100%;height:auto;max-height:260px}
+.bm-zone{cursor:default;transition:opacity .3s}
+.bm-legend{display:flex;flex-direction:column;gap:7px}
+.bm-item{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted)}
+.bm-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.bm-item b{color:var(--text);font-weight:600}
+.bm-item small{color:var(--faint);font-size:11.5px}
+@media(max-width:520px){.bodymap-grid{grid-template-columns:120px 1fr;gap:12px}}
+
+/* leve ao médico (handoff) */
+.leve-medico{margin-top:16px;border-radius:16px;padding:18px;background:linear-gradient(135deg,rgba(124,131,255,.13),rgba(95,227,255,.06));border:1px solid rgba(124,131,255,.3)}
+.leve-medico h4{font-family:"Space Grotesk";font-size:15.5px;font-weight:600;display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.leve-medico h4 svg{width:19px;height:19px;stroke:var(--indigo);fill:none}
+.leve-medico .lm-sub{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+.lm-list{list-style:none;display:flex;flex-direction:column;gap:9px;margin:0 0 14px}
+.lm-list li{display:flex;gap:10px;font-size:14px;color:var(--text);align-items:flex-start;line-height:1.5}
+.lm-list li .lm-n{flex-shrink:0;width:21px;height:21px;border-radius:50%;background:rgba(124,131,255,.18);color:var(--indigo);font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+
+/* Q&A — pergunte sobre seu resultado */
+.qa-box{margin-top:16px;border-radius:16px;border:1px solid var(--stroke);background:var(--panel);padding:18px}
+.qa-head{font-family:"Space Grotesk";font-weight:600;font-size:15px;display:flex;align-items:center;gap:9px;margin-bottom:3px}
+.qa-head svg{width:18px;height:18px;stroke:var(--cyan);fill:none}
+.qa-sub{font-size:12.5px;color:var(--faint);margin-bottom:12px}
+.qa-thread{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.qa-msg{border-radius:12px;padding:11px 14px;font-size:14px;line-height:1.6;max-width:92%}
+.qa-msg.q{align-self:flex-end;background:linear-gradient(120deg,var(--indigo),var(--violet));color:#fff}
+.qa-msg.a{align-self:flex-start;background:rgba(255,255,255,.045);border:1px solid var(--stroke);color:var(--text);white-space:pre-wrap}
+.qa-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.qa-chip{font-size:12.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--stroke);border-radius:999px;padding:7px 13px;cursor:pointer;transition:border-color .2s,color .2s}
+.qa-chip:hover{border-color:var(--indigo);color:var(--text)}
+.qa-form{display:flex;gap:9px}
+.qa-form input{flex:1;font-family:inherit;font-size:14.5px;color:var(--text);background:rgba(255,255,255,.03);border:1px solid var(--stroke);border-radius:12px;padding:12px 14px}
+.qa-form input:focus{outline:none;border-color:var(--indigo)}
+.qa-form button{flex-shrink:0}
+.rev-cursor::after{content:"▋";color:var(--cyan);animation:blink 1s steps(2) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';}</script>
@@ -397,8 +459,13 @@ footer{border-top:1px solid var(--stroke);padding:60px 0 40px;position:relative;
                 </div>
               </div>
             </div>
+            <div id="resToolbar" class="res-toolbar"></div>
             <div id="conclusao" style="display:none"></div>
+            <div id="mapaCorpo"></div>
             <div class="markers" id="markers"></div>
+            <div id="leveMedico"></div>
+            <div id="qaBox"></div>
+            <div id="evolucaoLink"></div>
             <div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> Esta é uma interpretação informativa gerada por IA a partir de um exemplo. Sempre leve seus exames a um profissional de saúde.</div>
             <button class="btn btn-ghost" id="btnPdfExame" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF da análise</button>
           </div>
@@ -830,6 +897,7 @@ function renderExame(d){
   if(ringEl) ringEl.style.background=`conic-gradient(var(--good) 0 ${pct}%,rgba(255,255,255,.1) ${pct}%)`;
   if(sumH4) sumH4.textContent=`${norm} de ${tot} marcadores dentro do esperado`;
   if(sumP) sumP.textContent=alt>0?`${alt} ponto(s) merecem acompanhamento. Veja abaixo.`:'Todos os marcadores reconhecidos estão na faixa de referência.';
+  renderExtrasExame(d); // Ondas 1-4: áudio, mapa do corpo, leve ao médico, Q&A, evolução
   result.classList.add('show');
   result.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -1095,8 +1163,9 @@ symBtn.addEventListener('click',async()=>{
     if(d&&d.limite_atingido){if(PAYWALL_ATIVO){pwAbrir();}else{alert(d.resposta||'Limite diário atingido. Tente novamente amanhã.');}return;}
     if(!d.ok){throw new Error(d.resposta||'Não foi possível analisar.');}
     if(symPlaceholder) symPlaceholder.style.display='none';
-    symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6">${esc(d.resposta||'')}</div><button class="btn btn-ghost" onclick="gerarPDFSintomas()" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF</button>`;
     ultimoSintoma={resposta:d.resposta,nota:d.nota};
+    symResult.innerHTML=`<div class="tri"><div class="ti"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></div><div><h4>Orientação</h4><p>${esc(d.nota||'')}</p></div></div><div id="symResposta" style="white-space:pre-wrap;font-size:14.5px;color:var(--muted);line-height:1.6"></div><div class="res-toolbar">${botaoAudioHTML('falarSintomas','Ouvir orientação')}<button class="act-btn" onclick="gerarPDFSintomas()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Baixar PDF</span></button></div>`;
+    revelarProgressivo(document.getElementById('symResposta'),d.resposta||'');
     symResult.classList.add('show');
     symResult.scrollIntoView({behavior:'smooth',block:'nearest'});
     pwMarcar();
@@ -1211,7 +1280,7 @@ function renderImagem(d){
   if(!ehFilme&&d.merece_atencao&&d.merece_atencao.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">O que merece atenção</div>${lista(d.merece_atencao)}</div>`;
   if(d.perguntas_medico&&d.perguntas_medico.length) html+=`<div class="padrao-item" style="margin-top:10px"><div class="padrao-titulo">Perguntas para levar ao médico</div>${lista(d.perguntas_medico)}</div>`;
   html+=`<div class="res-note"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5m0-3h.01"/></svg> ${esc(d.nota||'')}</div>`;
-  html+=`<button class="btn btn-ghost" onclick="gerarPDFImagem()" style="margin-top:16px;width:100%;justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg> Baixar PDF</button>`;
+  html+=`<div class="res-toolbar">${botaoAudioHTML('falarImagem','Ouvir explicação')}<button class="act-btn" onclick="gerarPDFImagem()"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg><span>Baixar PDF</span></button></div>`;
   imgResult.innerHTML=html;
   imgResult.classList.add('show');
   imgResult.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1228,6 +1297,332 @@ function renderImagem(d){
         window.scrollTo({top:document.getElementById('analisar').offsetTop-40,behavior:'smooth'});
       };
     }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ENTREGA DE RESULTADOS — Ondas 1 a 4. Tudo client-side (custo-zero de
+// token) e falha-para-desligado: cada recurso testa suporte antes de
+// aparecer, então nada quebra se o navegador não suportar.
+// ══════════════════════════════════════════════════════════════════
+
+// Q&A ("Pergunte sobre seu resultado"): protegido por um token de capacidade invisível
+// emitido pela análise do exame (qa_token) + bucket diário próprio no servidor. Não
+// consome o limite de análises nem exige captcha por pergunta. Ver rota tipo=perguntar.
+const QA_HABILITADO=true;
+
+// ---------- Onda 1: ÁUDIO (Web Speech API nativa — zero servidor) ----------
+let _falandoBtn=null;
+function audioSuportado(){return typeof window!=='undefined'&&'speechSynthesis'in window&&typeof SpeechSynthesisUtterance!=='undefined';}
+function vozPtBR(){try{const v=speechSynthesis.getVoices()||[];return v.find(x=>/pt[-_]?BR/i.test(x.lang))||v.find(x=>/^pt/i.test(x.lang))||null;}catch(e){return null;}}
+function pararAudio(){try{speechSynthesis.cancel();}catch(e){}if(_falandoBtn){_falandoBtn.classList.remove('playing');_falandoBtn.querySelector('.a-lbl')&&(_falandoBtn.querySelector('.a-lbl').textContent=_falandoBtn.dataset.lbl||'Ouvir');_falandoBtn=null;}}
+function falar(texto,btn){
+  if(!audioSuportado()){alert('Seu navegador não suporta leitura em voz.');return;}
+  texto=String(texto||'').trim();
+  if(!texto){return;}
+  // clicar de novo no mesmo botão = parar (toggle)
+  if(_falandoBtn===btn){pararAudio();return;}
+  pararAudio();
+  const u=new SpeechSynthesisUtterance(texto);
+  u.lang='pt-BR';const vz=vozPtBR();if(vz)u.voice=vz;u.rate=1;u.pitch=1;
+  u.onend=()=>{if(_falandoBtn===btn)pararAudio();};
+  u.onerror=()=>{if(_falandoBtn===btn)pararAudio();};
+  _falandoBtn=btn;
+  if(btn){btn.classList.add('playing');const l=btn.querySelector('.a-lbl');if(l){btn.dataset.lbl=btn.dataset.lbl||l.textContent;l.textContent='Parar';}}
+  try{speechSynthesis.speak(u);}catch(e){pararAudio();}
+}
+function statusFala(s){return s==='alto'?'acima do esperado':s==='baixo'?'abaixo do esperado':s==='critico'?'muito alterado':'dentro do esperado';}
+function montarTextoAudioExame(d){
+  if(!d)return'';
+  const r=d.resumo||{};
+  let t=`Resultado do seu exame. ${r.normais||0} de ${r.total||0} marcadores estão dentro da faixa de referência. `;
+  if(d.conclusao&&d.conclusao.texto)t+=d.conclusao.texto+' ';
+  const alt=(d.marcadores||[]).filter(m=>m.status&&m.status!=='normal');
+  if(alt.length){t+='Pontos que merecem atenção. ';alt.forEach(m=>{t+=`${m.nome}: ${statusFala(m.status)}. `;if(m.explicacao)t+=m.explicacao+' ';});}
+  else t+='Todos os marcadores reconhecidos estão dentro do esperado. ';
+  t+='Lembre-se: esta é uma interpretação informativa e não substitui a avaliação de um médico.';
+  return t;
+}
+function montarTextoAudioImagem(d){
+  if(!d)return'';
+  let t=`${d.titulo_exame||'Exame de imagem'}. `;
+  if(d.aviso)t+=d.aviso+' ';
+  if(d.resumo_leigo)t+=d.resumo_leigo+' ';
+  (d.tranquilizador||[]).forEach(x=>t+=x+' ');
+  (d.merece_atencao||[]).forEach(x=>t+=x+' ');
+  if(d.perguntas_medico&&d.perguntas_medico.length){t+='Perguntas para levar ao médico. ';d.perguntas_medico.forEach(x=>t+=x+' ');}
+  return t;
+}
+function falarExame(b){falar(montarTextoAudioExame(ultimoExame),b);}
+function falarSintomas(b){falar(ultimoSintoma?ultimoSintoma.resposta:'',b);}
+function falarImagem(b){falar(montarTextoAudioImagem(ultimaImagem),b);}
+const SVG_SOM='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 010 7M19 5a9 9 0 010 14"/></svg>';
+const SVG_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>';
+function botaoAudioHTML(fn,label){
+  if(!audioSuportado())return'';
+  return `<button class="act-btn" onclick="${fn}(this)" aria-label="Ouvir em voz alta">${SVG_SOM}<span class="a-lbl">${label||'Ouvir'}</span><span class="a-eq"><i></i><i></i><i></i></span></button>`;
+}
+
+// ---------- Onda 3: MAPA DO CORPO (sistemas afetados — educativo) ----------
+// Cada categoria de marcador vira uma "zona" do corpo, colorida pelo pior status
+// presente. Não é diagnóstico: mostra QUAL sistema o exame toca, em linguagem visual.
+const ZONAS_CORPO={
+  'tireoide':       {nome:'Tireoide',        x:60,y:56, desc:'pescoço'},
+  'hormônios':      {nome:'Hormônios',       x:74,y:64, desc:'sistema endócrino'},
+  'hemograma':      {nome:'Sangue',          x:46,y:92, desc:'células do sangue'},
+  'lipídico':       {nome:'Coração e vasos', x:60,y:98, desc:'colesterol'},
+  'glicemia':       {nome:'Glicose',         x:60,y:120,desc:'açúcar no sangue'},
+  'função hepática':{nome:'Fígado',          x:47,y:124,desc:'fígado'},
+  'função renal':   {nome:'Rins',            x:73,y:138,desc:'rins'},
+  'vitaminas':      {nome:'Vitaminas',       x:52,y:172,desc:'geral'},
+  'minerais':       {nome:'Minerais',        x:68,y:186,desc:'ossos e geral'}
+};
+const PESO_STATUS={normal:0,baixo:2,alto:2,critico:3};
+function corStatusMapa(s){return s==='critico'?'var(--high)':(s==='alto'||s==='baixo')?'var(--warn)':'var(--good)';}
+function rotuloStatusMapa(s){return s==='critico'?'requer atenção':(s==='alto'||s==='baixo')?'para acompanhar':'dentro do esperado';}
+function renderMapaCorpo(marcadores,cont){
+  cont.innerHTML='';
+  const cats={};
+  (marcadores||[]).forEach(m=>{
+    const c=String(m.categoria||'').toLowerCase();
+    if(!ZONAS_CORPO[c])return;
+    const p=PESO_STATUS[m.status]??0;
+    if(!cats[c]||p>cats[c].peso)cats[c]={peso:p,status:m.status||'normal'};
+  });
+  const chaves=Object.keys(cats);
+  if(!chaves.length)return; // nenhuma categoria mapeável — não mostra a seção
+  // ordena: mais grave primeiro
+  chaves.sort((a,b)=>cats[b].peso-cats[a].peso);
+  const silhueta=`
+    <circle cx="60" cy="26" r="15"/>
+    <path d="M43 43 Q60 39 77 43 L73 122 Q60 130 47 122 Z"/>
+    <path d="M44 45 L31 108 L39 111 L50 58 Z"/>
+    <path d="M76 45 L89 108 L81 111 L70 58 Z"/>
+    <path d="M47 120 L44 214 L55 214 L60 146 L65 214 L76 214 L73 120 Z"/>`;
+  let dots='';
+  chaves.forEach(c=>{
+    const z=ZONAS_CORPO[c],cor=corStatusMapa(cats[c].status);
+    dots+=`<circle cx="${z.x}" cy="${z.y}" r="8.5" fill="${cor}" opacity=".16"/>`
+        +`<circle cx="${z.x}" cy="${z.y}" r="5" fill="none" stroke="${cor}" stroke-width="1.3" opacity=".55"/>`
+        +`<circle cx="${z.x}" cy="${z.y}" r="3.1" fill="${cor}"><title>${z.nome} — ${rotuloStatusMapa(cats[c].status)}</title></circle>`;
+  });
+  let legenda='';
+  chaves.forEach(c=>{
+    const z=ZONAS_CORPO[c],st=cats[c].status,cor=corStatusMapa(st);
+    legenda+=`<div class="bm-item"><span class="bm-dot" style="background:${cor};box-shadow:0 0 8px ${cor}"></span><span><b>${esc(z.nome)}</b> <small>· ${esc(rotuloStatusMapa(st))}</small></span></div>`;
+  });
+  cont.innerHTML=`<div class="bodymap">
+    <div class="bodymap-head">Mapa do seu exame</div>
+    <div class="bodymap-sub">Quais sistemas do corpo estes marcadores acompanham. Isto é educativo — não é diagnóstico.</div>
+    <div class="bodymap-grid">
+      <svg viewBox="0 0 120 226" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapa dos sistemas do corpo tocados pelo exame">
+        <defs><linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="rgba(124,131,255,.16)"/>
+          <stop offset="1" stop-color="rgba(95,227,255,.05)"/>
+        </linearGradient></defs>
+        <g fill="url(#bmGrad)" stroke="var(--stroke-2)" stroke-width="1.3" stroke-linejoin="round">${silhueta}</g>
+        <g class="bm-zone">${dots}</g>
+      </svg>
+      <div class="bm-legend">${legenda}</div>
+    </div>
+  </div>`;
+}
+
+// ---------- Onda 1: LEVE AO MÉDICO (handoff — gerado localmente, zero token) ----------
+function perguntaPorMarcador(m){
+  const nome=m.nome,val=`${formatNum(m.valor)} ${m.unidade||''}`.trim();
+  if(m.status==='critico')return `Meu ${nome} veio bastante alterado (${val}). Preciso de tratamento ou de exames adicionais com urgência?`;
+  if(m.status==='alto')return `Meu ${nome} está acima da referência (${val}). O que pode ter causado isso e devo acompanhar?`;
+  if(m.status==='baixo')return `Meu ${nome} está abaixo da referência (${val}). Isso precisa de reposição, dieta ou acompanhamento?`;
+  return `O que meu resultado de ${nome} (${val}) indica no meu caso?`;
+}
+function montarPerguntasMedico(d){
+  const perguntas=[];
+  const alt=(d.marcadores||[]).filter(m=>m.status&&m.status!=='normal')
+            .sort((a,b)=>(PESO_STATUS[b.status]||0)-(PESO_STATUS[a.status]||0));
+  alt.slice(0,4).forEach(m=>perguntas.push(perguntaPorMarcador(m)));
+  if(d.conclusao&&d.conclusao.urgencia==='vermelho')
+    perguntas.unshift('Estes resultados indicam algo que precisa de avaliação com prioridade?');
+  // perguntas gerais úteis sempre
+  perguntas.push('Preciso repetir algum destes exames? Em quanto tempo?');
+  if(alt.length)perguntas.push('Esses resultados mudam algo na minha rotina, alimentação ou medicação atual?');
+  // dedup + limite
+  return [...new Set(perguntas)].slice(0,6);
+}
+function renderLeveAoMedico(d,cont){
+  cont.innerHTML='';
+  const perguntas=montarPerguntasMedico(d);
+  if(!perguntas.length)return;
+  const itens=perguntas.map((p,i)=>`<li><span class="lm-n">${i+1}</span><span>${esc(p)}</span></li>`).join('');
+  cont.innerHTML=`<div class="leve-medico">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A3.5 3.5 0 0012 6a3.5 3.5 0 00-10 2.5C2 10.8 3.5 12.5 5 14l7 7z"/></svg> Leve ao seu médico</h4>
+    <div class="lm-sub">Perguntas prontas para você chegar preparado na consulta. Baixe e mostre — vale mais que decorar.</div>
+    <ul class="lm-list">${itens}</ul>
+    <button class="btn btn-primary" onclick="gerarPDFMedico(ultimoExame)" style="width:100%;justify-content:center">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      Baixar resumo para o médico
+    </button>
+  </div>`;
+}
+// PDF de uma página, focado na consulta: urgência + alterados com valor/ref + perguntas.
+function gerarPDFMedico(d){
+  if(!d){alert('Faça uma análise antes.');return;}
+  if(!pdfPronto()){alert('O gerador de PDF ainda está carregando. Tente de novo em instantes.');return;}
+  const {jsPDF}=window.jspdf;const doc=new jsPDF();
+  const data=new Date().toLocaleDateString('pt-BR');
+  const X=20,W=170,R=190,LH=6;let y=20;
+  const checar=h=>{if(y+h>280){doc.addPage();y=20;}};
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(...PDFC.indigo);
+  doc.text('ReadMyLabs',105,y,{align:'center'});y+=8;
+  doc.setFont('helvetica','normal');doc.setFontSize(13);doc.setTextColor(...PDFC.ink);
+  doc.text('Resumo para levar ao médico',105,y,{align:'center'});y+=6;
+  doc.setFontSize(9.5);doc.setTextColor(...PDFC.faint);
+  doc.text(pdfSan('Gerado em '+data+(d.arquivo?(' · '+d.arquivo):'')),105,y,{align:'center'});y+=8;
+  doc.setDrawColor(...PDFC.indigo);doc.setLineWidth(.4);doc.line(X,y,R,y);y+=9;
+  const c=d.conclusao||{};
+  const U={verde:{...pdfStatus('normal'),t:'Sem alterações relevantes'},amarelo:{...pdfStatus('baixo'),t:'Atenção — acompanhamento recomendado'},vermelho:{...pdfStatus('alto'),t:'Investigação com prioridade'}}[c.urgencia];
+  if(U){checar(15);doc.setFillColor(...U.bg);doc.roundedRect(X,y,W,11,2,2,'F');doc.setFillColor(...U.main);doc.circle(X+5,y+5.5,1.7,'F');doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...U.main);doc.text(pdfSan('Conclusão: '+U.t),X+9.5,y+7);y+=17;}
+  // alterados
+  const alt=(d.marcadores||[]).filter(m=>m.status&&m.status!=='normal').sort((a,b)=>(({critico:0,alto:1,baixo:2})[a.status]??9)-(({critico:0,alto:1,baixo:2})[b.status]??9));
+  if(alt.length){
+    checar(10);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...PDFC.indigo);doc.text('Marcadores alterados',X,y);y+=6.5;
+    alt.forEach(m=>{
+      const s=pdfStatus(m.status);
+      let ref='';if(m.ref_min!=null&&m.ref_max!=null)ref=`ref. ${m.ref_min}–${m.ref_max}`;else if(m.ref_max!=null)ref=`ref. até ${m.ref_max}`;else if(m.ref_min!=null)ref=`ref. acima de ${m.ref_min}`;
+      const val=[m.valor,m.unidade].filter(x=>x!=null&&x!=='').join(' ');
+      checar(6);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...s.main);doc.text(pdfSan('• '+m.nome+': '+val+(ref?('  ('+ref+')'):'')),X,y);y+=5.4;
+    });
+    y+=3;
+  }
+  // perguntas
+  const qs=montarPerguntasMedico(d);
+  checar(10);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...PDFC.indigo);doc.text('Perguntas para a consulta',X,y);y+=6.5;
+  qs.forEach((q,i)=>{doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...PDFC.gray);const ls=doc.splitTextToSize(pdfSan((i+1)+'. '+q),W);checar(ls.length*5+2);ls.forEach(l=>{doc.text(l,X,y);y+=5;});y+=1.5;});
+  y+=6;checar(16);doc.setDrawColor(...PDFC.line);doc.setLineWidth(.3);doc.line(X,y,R,y);y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...PDFC.faint);
+  doc.splitTextToSize(pdfSan('Documento informativo gerado por IA a partir do seu exame. Serve para orientar a conversa com o profissional de saúde — não é diagnóstico nem prescrição.'),W).forEach(l=>{checar(4);doc.text(l,X,y);y+=4;});
+  doc.save('readmylabs_para_o_medico_'+data.replace(/\//g,'-')+'.pdf');
+  if(window.rml&&rml.event)rml.event('leve_ao_medico_pdf',{});
+}
+
+// ---------- Onda 3: CARD COMPARTILHÁVEL (PNG via canvas — privacidade-safe) ----------
+// Mostra só o RESUMO (anel, X de Y, urgência) — nunca valores/nomes de marcadores,
+// para o compartilhamento não expor dado clínico. Loop de crescimento pelo WhatsApp.
+function gerarCardCompartilhavel(d){
+  if(!d){alert('Faça uma análise antes de compartilhar.');return;}
+  const r=d.resumo||{},tot=r.total||0,norm=r.normais||0,pct=tot?Math.round(norm/tot*100):0;
+  const urg=(d.conclusao&&d.conclusao.urgencia)||'verde';
+  const W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+  // fundo Aurora
+  g.fillStyle='#07070d';g.fillRect(0,0,W,H);
+  let rg=g.createRadialGradient(220,240,40,220,240,760);rg.addColorStop(0,'rgba(90,60,255,.55)');rg.addColorStop(1,'rgba(90,60,255,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
+  rg=g.createRadialGradient(900,420,40,900,420,720);rg.addColorStop(0,'rgba(31,182,255,.4)');rg.addColorStop(1,'rgba(31,182,255,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
+  rg=g.createRadialGradient(560,1120,40,560,1120,640);rg.addColorStop(0,'rgba(177,75,255,.32)');rg.addColorStop(1,'rgba(177,75,255,0)');g.fillStyle=rg;g.fillRect(0,0,W,H);
+  const CX=W/2;
+  // marca
+  g.textAlign='center';g.fillStyle='#f3f2fb';g.font='700 60px "Space Grotesk",sans-serif';g.fillText('ReadMyLabs',CX,150);
+  g.fillStyle='#a6a4c0';g.font='500 30px "Plus Jakarta Sans",sans-serif';g.fillText('Seu exame, em linguagem humana',CX,200);
+  // anel de %
+  const ay=560,arr=210;const corAnel=urg==='vermelho'?'#ff7d8a':urg==='amarelo'?'#ffcf6b':'#52e2b0';
+  g.lineWidth=34;g.strokeStyle='rgba(255,255,255,.10)';g.beginPath();g.arc(CX,ay,arr,0,Math.PI*2);g.stroke();
+  g.strokeStyle=corAnel;g.lineCap='round';g.beginPath();g.arc(CX,ay,arr,-Math.PI/2,-Math.PI/2+Math.PI*2*(pct/100));g.stroke();
+  g.fillStyle='#f3f2fb';g.font='700 150px "Space Grotesk",sans-serif';g.fillText(pct+'%',CX,ay+40);
+  g.fillStyle='#a6a4c0';g.font='500 34px "Plus Jakarta Sans",sans-serif';g.fillText('dentro do esperado',CX,ay+110);
+  // headline
+  g.fillStyle='#f3f2fb';g.font='700 52px "Space Grotesk",sans-serif';
+  g.fillText(`${norm} de ${tot} marcadores`,CX,900);
+  g.fillStyle=corAnel;g.font='600 38px "Plus Jakarta Sans",sans-serif';
+  const msgUrg=urg==='vermelho'?'Alguns pontos merecem prioridade':urg==='amarelo'?'Alguns pontos para acompanhar':'Tudo dentro da referência';
+  g.fillText(msgUrg,CX,965);
+  // chip
+  g.fillStyle='rgba(124,131,255,.14)';roundRectCanvas(g,CX-300,1080,600,86,43);g.fill();
+  g.fillStyle='#c9c8ff';g.font='600 34px "Plus Jakarta Sans",sans-serif';g.fillText('Entendi meu exame em segundos',CX,1135);
+  // rodapé
+  g.fillStyle='#6f6d8c';g.font='500 30px "Plus Jakarta Sans",sans-serif';g.fillText('readmylabs.com.br',CX,1270);
+  cv.toBlob(async(blob)=>{
+    if(!blob){alert('Não foi possível gerar a imagem.');return;}
+    const file=new File([blob],'readmylabs.png',{type:'image/png'});
+    if(window.rml&&rml.event)rml.event('card_compartilhado',{urgencia:urg});
+    // 1) Web Share nativo com arquivo (mobile) — melhor caminho
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'ReadMyLabs',text:'Entendi meu exame com o ReadMyLabs 🩺'});return;}catch(e){if(e&&e.name==='AbortError')return;}
+    }
+    // 2) fallback: baixa o PNG + abre WhatsApp com texto
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='readmylabs.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+    const wa='https://wa.me/?text='+encodeURIComponent('Entendi meu exame com o ReadMyLabs 🩺 readmylabs.com.br');
+    window.open(wa,'_blank','noopener');
+  },'image/png');
+}
+function roundRectCanvas(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+// ---------- Onda 4: streaming reveal + Q&A ----------
+// "Streaming" client-side: revela o texto já recebido progressivamente, dando a
+// sensação de resposta ao vivo (confiável mesmo atrás de proxy/CDN). Sem SSE no
+// servidor — a redação da IA continua no endpoint seguro existente.
+function revelarProgressivo(el,texto,done){
+  texto=String(texto||'');const palavras=texto.split(/(\s+)/);let i=0;
+  el.classList.add('rev-cursor');el.textContent='';
+  const passo=()=>{
+    if(i>=palavras.length){el.classList.remove('rev-cursor');done&&done();return;}
+    el.textContent+=palavras[i++];
+    // agrupa 2 tokens por frame p/ fluir rápido sem travar
+    if(i<palavras.length){el.textContent+=palavras[i++]||'';}
+    setTimeout(passo,16);
+  };
+  passo();
+}
+function renderQA(d,cont){
+  cont.innerHTML='';
+  if(!QA_HABILITADO)return;
+  const alt=(d.marcadores||[]).filter(m=>m.status&&m.status!=='normal');
+  const chips=[];
+  if(alt[0])chips.push(`O que é ${alt[0].nome}?`);
+  chips.push('O que eu posso fazer no dia a dia?');
+  chips.push('Preciso me preocupar?');
+  const chipHtml=chips.map(c=>`<button class="qa-chip" onclick="qaPerguntar(this.textContent)">${esc(c)}</button>`).join('');
+  cont.innerHTML=`<div class="qa-box">
+    <div class="qa-head"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Pergunte sobre seu resultado</div>
+    <div class="qa-sub">Tire dúvidas sobre este exame. Respostas informativas, com base nos seus marcadores.</div>
+    <div class="qa-thread" id="qaThread"></div>
+    <div class="qa-chips">${chipHtml}</div>
+    <form class="qa-form" onsubmit="event.preventDefault();qaPerguntar(document.getElementById('qaInput').value)">
+      <input id="qaInput" placeholder="Ex.: o que pode ter elevado esse valor?" maxlength="300" autocomplete="off">
+      <button type="submit" class="btn btn-primary">Perguntar</button>
+    </form>
+  </div>`;
+}
+async function qaPerguntar(pergunta){
+  pergunta=String(pergunta||'').trim();if(!pergunta||!ultimoExame)return;
+  const thread=document.getElementById('qaThread');const inp=document.getElementById('qaInput');if(inp)inp.value='';
+  const q=document.createElement('div');q.className='qa-msg q';q.textContent=pergunta;thread.appendChild(q);
+  const a=document.createElement('div');a.className='qa-msg a';a.textContent='…';thread.appendChild(a);
+  a.scrollIntoView({behavior:'smooth',block:'nearest'});
+  try{
+    const contexto=(ultimoExame.marcadores||[]).map(m=>`${m.nome}: ${m.valor} ${m.unidade||''} (${m.status})`).join('\n');
+    const fd=new FormData();fd.append('tipo','perguntar');fd.append('pergunta',pergunta);fd.append('contexto',contexto);fd.append('qa_token',ultimoExame.qa_token||'');fd.append('dev',DEV);
+    const r=await fetch(ENDPOINT,{method:'POST',body:fd});const d=await r.json();
+    if(d&&d.limite_atingido){a.textContent=d.resposta||'Limite diário atingido.';return;}
+    if(!d.ok){a.textContent=d.resposta||'Não foi possível responder agora.';return;}
+    revelarProgressivo(a,d.resposta||'');
+  }catch(e){a.textContent='Erro de rede. Tente novamente.';}
+}
+
+// ---------- orquestrador das ondas no resultado do exame ----------
+function renderExtrasExame(d){
+  const tb=document.getElementById('resToolbar');
+  if(tb)tb.innerHTML=botaoAudioHTML('falarExame','Ouvir análise')
+    +`<button class="act-btn" onclick="gerarCardCompartilhavel(ultimoExame)" aria-label="Compartilhar resumo">${SVG_SHARE}<span>Compartilhar</span></button>`;
+  const mc=document.getElementById('mapaCorpo');if(mc)renderMapaCorpo(d.marcadores,mc);
+  const lm=document.getElementById('leveMedico');if(lm)renderLeveAoMedico(d,lm);
+  const qa=document.getElementById('qaBox');if(qa)renderQA(d,qa);
+  // Onda 2: link para a evolução (só p/ usuário logado + verificado)
+  const ev=document.getElementById('evolucaoLink');
+  if(ev){
+    if(window.rmlAuth&&window.rmlAuth.email_verificado){
+      ev.innerHTML=`<a href="/tendencias.php" class="act-btn" style="margin-top:14px;width:100%;justify-content:center;text-decoration:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+        Ver a evolução dos seus marcadores</a>`;
+    }else ev.innerHTML='';
   }
 }
 
@@ -1263,13 +1658,14 @@ document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
     const r=await fetch('/auth-status.php',{credentials:'same-origin',cache:'no-store'});
     if(!r.ok) return;
     const d=await r.json();
+    window.rmlAuth=d; // Onda 2: estado de login p/ o link de evolução no resultado
     if(!d || !d.logged_in) return;
     const cta=document.getElementById('navCta');
     if(!cta) return;
     const nome=esc((d.nome||d.email||'Conta').slice(0,24));
-    // "Meus exames" só aparece com e-mail verificado (F4 exige verificação).
+    // "Meus exames" e "Evolução" só aparecem com e-mail verificado (F4 exige verificação).
     const hist = d.email_verificado
-      ? `<a href="/historico.php" class="btn btn-ghost">Meus exames</a>`
+      ? `<a href="/historico.php" class="btn btn-ghost">Meus exames</a><a href="/tendencias.php" class="btn btn-ghost">Evolução</a>`
       : '';
     cta.innerHTML=`${hist}<a href="/conta.php" class="btn btn-ghost">${nome}</a><a href="/sair.php" class="btn btn-primary">Sair</a>`;
   }catch(e){/* sem auth = nada muda */}
